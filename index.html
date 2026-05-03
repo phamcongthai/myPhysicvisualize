@@ -249,6 +249,61 @@
         box-shadow: var(--shadow-sm);
     }
 
+    /* ===== SIM 4 — Khu vực mô phỏng động (xe vào cua) ===== */
+    .sim-anim-section {
+        margin-top: 26px;
+        padding: 20px;
+        background: linear-gradient(180deg, rgba(180, 83, 9, 0.06), rgba(180, 83, 9, 0.02));
+        border: 1.5px dashed rgba(180, 83, 9, 0.35);
+        border-radius: 16px;
+    }
+    .sim-anim-section h4 {
+        font-family: var(--font-display);
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--branch-4);
+        margin-bottom: 8px;
+    }
+    .sim-anim-section .anim-desc {
+        font-size: 0.86rem;
+        color: var(--text-secondary);
+        margin-bottom: 12px;
+        line-height: 1.5;
+    }
+    .sim-anim-section .anim-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .sim-anim-section .anim-btn {
+        font-family: var(--font-body);
+        font-size: 0.92rem;
+        font-weight: 700;
+        padding: 9px 22px;
+        border: 2px solid var(--branch-4);
+        background: var(--branch-4);
+        color: white;
+        border-radius: 100px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
+    }
+    .sim-anim-section .anim-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+    .sim-anim-section .anim-btn.is-secondary {
+        background: white;
+        color: var(--branch-4);
+    }
+    .sim-anim-section .anim-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        transform: none;
+    }
+
     /* ===== MINDMAP ===== */
     #mindmap-container {
         position: relative;
@@ -2045,6 +2100,19 @@ class BankedTurnSim {
         this.state = { angle: 26.57, mu: 0.5 };
         this.canvas = null;
         this.ctx = null;
+        // Trạng thái animation top-down
+        this.anim = {
+            isPlaying: false,
+            angle: 0,
+            flyoff: false,
+            flyoffPos: null,
+            flyoffVel: null,
+            flyoffStartAngle: 0,
+            rafId: null,
+            lastTime: 0
+        };
+        this.animCanvas = null;
+        this.animCtx = null;
     }
     mount() {
         this.container.innerHTML = `
@@ -2069,25 +2137,393 @@ class BankedTurnSim {
                 <div class="legend-item"><span class="legend-swatch" style="background: #D97706;"></span> \\(\\vec{F}_{ms}\\)</div>
             </div>
             <div class="readout-table" id="sim4-readout"></div>
+
+            <div class="sim-anim-section">
+                <h4>▶ Mô phỏng động — Xe vào cua tròn (top-down)</h4>
+                <div class="anim-desc">
+                    Bán kính cua \\(r = 50\\,\\text{m}\\), tốc độ xe \\(v = 18\\,\\text{m/s}\\).
+                    Khi mặt đường <b>phẳng &amp; trơn</b> (\\(\\alpha\\) nhỏ, \\(\\mu\\) thấp): lực ma sát không đủ
+                    đóng vai trò lực hướng tâm → xe <b>văng theo phương tiếp tuyến</b> ra khỏi cua.
+                    Tăng \\(\\alpha\\) hoặc \\(\\mu\\) ở thanh trượt phía trên để xe ôm cua thành công.
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="sim4-anim-canvas" width="540" height="340"></canvas>
+                </div>
+                <div class="anim-buttons">
+                    <button class="anim-btn" id="sim4-play-btn">▶ Chạy thử</button>
+                    <button class="anim-btn is-secondary" id="sim4-reset-btn">⟲ Reset</button>
+                    <button class="anim-btn is-secondary" id="sim4-flat-btn">⚠ Mặt đường phẳng (α=0, μ=0.1)</button>
+                </div>
+            </div>
         `;
         this.canvas = document.getElementById('sim4-canvas');
         this.ctx = this.canvas.getContext('2d');
+        this.animCanvas = document.getElementById('sim4-anim-canvas');
+        this.animCtx = this.animCanvas.getContext('2d');
 
         document.getElementById('sim4-angle').addEventListener('input', (e) => {
             this.state.angle = parseFloat(e.target.value);
             document.getElementById('sim4-angle-val').textContent = this.state.angle.toFixed(1) + '°';
             this._render();
+            if (!this.anim.isPlaying) this._renderAnim();
         });
         document.getElementById('sim4-mu').addEventListener('input', (e) => {
             this.state.mu = parseFloat(e.target.value);
             document.getElementById('sim4-mu-val').textContent = this.state.mu.toFixed(2);
             this._render();
+            if (!this.anim.isPlaying) this._renderAnim();
         });
+        document.getElementById('sim4-play-btn').addEventListener('click', () => this._animStart());
+        document.getElementById('sim4-reset-btn').addEventListener('click', () => this._animReset());
+        document.getElementById('sim4-flat-btn').addEventListener('click', () => {
+            this.state.angle = 0;
+            this.state.mu = 0.1;
+            document.getElementById('sim4-angle').value = '0';
+            document.getElementById('sim4-mu').value = '0.1';
+            document.getElementById('sim4-angle-val').textContent = '0.0°';
+            document.getElementById('sim4-mu-val').textContent = '0.10';
+            this._render();
+            this._animReset();
+            setTimeout(() => this._animStart(), 200);
+        });
+
         this._render();
+        this._renderAnim();
         this._precisionListener = () => this._render();
         PrecisionController.onChange(this._precisionListener);
     }
-    unmount() {}
+    unmount() {
+        if (this.anim.rafId) cancelAnimationFrame(this.anim.rafId);
+        this.anim.isPlaying = false;
+    }
+
+    // ====== Animation top-down ======
+    _animStart() {
+        if (this.anim.isPlaying) return;
+        this.anim.isPlaying = true;
+        this.anim.angle = 0;
+        this.anim.flyoff = false;
+        this.anim.flyoffPos = null;
+        this.anim.flyoffVel = null;
+        this.anim.flyoffStartAngle = 0;
+        this.anim.lastTime = performance.now();
+        document.getElementById('sim4-play-btn').disabled = true;
+        this._animTick();
+    }
+    _animReset() {
+        if (this.anim.rafId) cancelAnimationFrame(this.anim.rafId);
+        this.anim.isPlaying = false;
+        this.anim.angle = 0;
+        this.anim.flyoff = false;
+        this.anim.flyoffPos = null;
+        this.anim.flyoffVel = null;
+        const btn = document.getElementById('sim4-play-btn');
+        if (btn) btn.disabled = false;
+        this._renderAnim();
+    }
+    _computeVMax() {
+        const realR = 50, g = 9.81;
+        const alpha = this.state.angle * Math.PI / 180;
+        const mu = this.state.mu;
+        const cA = Math.cos(alpha), sA = Math.sin(alpha);
+        const den = cA - mu * sA;
+        if (den <= 0) return Infinity;
+        return Math.sqrt(realR * g * (sA + mu * cA) / den);
+    }
+    _animTick() {
+        if (!this.anim.isPlaying) return;
+        const now = performance.now();
+        let dt = (now - this.anim.lastTime) / 1000;
+        if (dt > 0.05) dt = 0.05;
+        this.anim.lastTime = now;
+
+        const W = this.animCanvas.width, H = this.animCanvas.height;
+        const cx = W / 2, cy = H / 2 + 10;
+        const rPx = 105;
+
+        const realR = 50, vTarget = 18;
+        const vMax = this._computeVMax();
+        const safe = vTarget <= vMax;
+
+        if (!this.anim.flyoff) {
+            // Tốc độ góc cho video — đủ chậm để xem rõ, đủ nhanh để không nhàm.
+            // Một vòng ≈ 5 giây (omega ≈ 1.25 rad/s).
+            const omega = 1.25;
+            const linearSpeedPx = omega * rPx; // px/s
+            this.anim.angle += omega * dt;
+
+            // Nếu không an toàn → văng sau khi đi được ~22°
+            if (!safe && this.anim.angle > Math.PI / 8) {
+                this.anim.flyoff = true;
+                this.anim.flyoffStartAngle = this.anim.angle;
+                const ang = this.anim.angle - Math.PI / 2;
+                this.anim.flyoffPos = {
+                    x: cx + rPx * Math.cos(ang),
+                    y: cy + rPx * Math.sin(ang)
+                };
+                // Hướng tiếp tuyến (chiều chuyển động) — tiếp tục với cùng vận tốc
+                const tangentAng = ang + Math.PI / 2;
+                this.anim.flyoffVel = {
+                    x: linearSpeedPx * Math.cos(tangentAng),
+                    y: linearSpeedPx * Math.sin(tangentAng)
+                };
+            }
+            // Đi hết 1 vòng → dừng
+            if (this.anim.angle >= Math.PI * 2) {
+                this.anim.angle = Math.PI * 2;
+                this.anim.isPlaying = false;
+                document.getElementById('sim4-play-btn').disabled = false;
+            }
+        } else {
+            this.anim.flyoffPos.x += this.anim.flyoffVel.x * dt;
+            this.anim.flyoffPos.y += this.anim.flyoffVel.y * dt;
+            // Ra khỏi canvas → dừng
+            if (this.anim.flyoffPos.x < -60 || this.anim.flyoffPos.x > W + 60 ||
+                this.anim.flyoffPos.y < -60 || this.anim.flyoffPos.y > H + 60) {
+                this.anim.isPlaying = false;
+                document.getElementById('sim4-play-btn').disabled = false;
+            }
+        }
+
+        this._renderAnim();
+        if (this.anim.isPlaying) {
+            this.anim.rafId = requestAnimationFrame(() => this._animTick());
+        }
+    }
+    _renderAnim() {
+        const ctx = this.animCtx;
+        const W = this.animCanvas.width, H = this.animCanvas.height;
+        ctx.clearRect(0, 0, W, H);
+
+        const cx = W / 2, cy = H / 2 + 10;
+        const rPx = 105;
+        const roadHalfW = 26;
+
+        const alpha = this.state.angle * Math.PI / 180;
+        const mu = this.state.mu;
+        const vMax = this._computeVMax();
+        const vTarget = 18;
+        const safe = vTarget <= vMax;
+
+        // ===== Cỏ (nền) =====
+        const bg = ctx.createRadialGradient(cx, cy, 30, cx, cy, Math.max(W, H));
+        bg.addColorStop(0, '#9DC172');
+        bg.addColorStop(1, '#6F9447');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        // Họa tiết cỏ (chấm nhỏ)
+        ctx.fillStyle = 'rgba(60, 90, 35, 0.35)';
+        for (let i = 0; i < 60; i++) {
+            const x = (i * 91) % W;
+            const y = (i * 53 + 17) % H;
+            ctx.fillRect(x, y, 2, 2);
+        }
+
+        // ===== Mặt đường (annulus) =====
+        const bankIntensity = Math.min(1, this.state.angle / 45);
+        const roadL = 56 - bankIntensity * 14;
+        ctx.fillStyle = `hsl(220, 16%, ${roadL}%)`;
+        ctx.beginPath();
+        ctx.arc(cx, cy, rPx + roadHalfW, 0, Math.PI * 2);
+        ctx.arc(cx, cy, rPx - roadHalfW, 0, Math.PI * 2, true);
+        ctx.closePath();
+        ctx.fill();
+
+        // Đổ bóng banking (mép ngoài tối hơn khi α lớn)
+        if (this.state.angle > 1) {
+            ctx.save();
+            const grad = ctx.createRadialGradient(cx, cy, rPx, cx, cy, rPx + roadHalfW);
+            grad.addColorStop(0, 'rgba(0,0,0,0)');
+            grad.addColorStop(1, `rgba(0,0,0,${0.12 + 0.32 * bankIntensity})`);
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, rPx + roadHalfW, 0, Math.PI * 2);
+            ctx.arc(cx, cy, rPx, 0, Math.PI * 2, true);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Vạch giữa đứt nét
+        ctx.save();
+        ctx.strokeStyle = '#FFF';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([12, 10]);
+        ctx.beginPath();
+        ctx.arc(cx, cy, rPx, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        // Mép đường
+        ctx.strokeStyle = '#1F2940';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, rPx + roadHalfW, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy, rPx - roadHalfW, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Tâm cua + bán kính
+        ctx.fillStyle = '#FFF';
+        ctx.strokeStyle = '#0F1F3D';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#0F1F3D';
+        ctx.font = 'bold 12px "JetBrains Mono"';
+        ctx.fillText('O', cx + 8, cy + 14);
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(15, 31, 61, 0.55)';
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + rPx, cy);
+        ctx.stroke();
+        ctx.fillStyle = '#0F1F3D';
+        ctx.font = 'italic 12px "Fraunces", serif';
+        ctx.fillText('r', cx + rPx / 2 - 4, cy - 6);
+        ctx.restore();
+
+        // ===== Vẽ vết trượt khi văng =====
+        if (this.anim.flyoff && this.anim.flyoffPos) {
+            const startAng = this.anim.flyoffStartAngle - Math.PI / 2;
+            const startX = cx + rPx * Math.cos(startAng);
+            const startY = cy + rPx * Math.sin(startAng);
+            ctx.save();
+            ctx.strokeStyle = 'rgba(40, 40, 40, 0.55)';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.setLineDash([6, 6]);
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(this.anim.flyoffPos.x, this.anim.flyoffPos.y);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // ===== Xe (top-down) =====
+        let carX, carY, carHeading;
+        if (this.anim.flyoff && this.anim.flyoffPos) {
+            carX = this.anim.flyoffPos.x;
+            carY = this.anim.flyoffPos.y;
+            carHeading = Math.atan2(this.anim.flyoffVel.y, this.anim.flyoffVel.x);
+        } else {
+            const ang = this.anim.angle - Math.PI / 2;
+            carX = cx + rPx * Math.cos(ang);
+            carY = cy + rPx * Math.sin(ang);
+            carHeading = ang + Math.PI / 2;
+        }
+        this._drawCarTopDown(ctx, carX, carY, carHeading);
+
+        // ===== Trạng thái trên góc =====
+        ctx.save();
+        ctx.font = 'bold 13px "Be Vietnam Pro"';
+        if (this.anim.flyoff) {
+            ctx.fillStyle = 'rgba(255,255,255,0.95)';
+            ctx.fillRect(10, 10, 230, 30);
+            ctx.strokeStyle = '#C2185B';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(10, 10, 230, 30);
+            ctx.fillStyle = '#C2185B';
+            ctx.fillText('⚠ XE BỊ VĂNG RA NGOÀI!', 22, 30);
+        } else if (this.anim.isPlaying) {
+            ctx.fillStyle = 'rgba(255,255,255,0.95)';
+            ctx.fillRect(10, 10, 250, 30);
+            ctx.strokeStyle = '#0B6E4F';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(10, 10, 250, 30);
+            ctx.fillStyle = '#0B6E4F';
+            ctx.fillText('✓ XE ĐANG ÔM CUA', 22, 30);
+        } else {
+            ctx.fillStyle = 'rgba(255,255,255,0.95)';
+            ctx.fillRect(10, 10, 220, 30);
+            ctx.strokeStyle = '#0F1F3D';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(10, 10, 220, 30);
+            ctx.fillStyle = '#0F1F3D';
+            ctx.fillText('Bấm "Chạy thử" để bắt đầu', 22, 30);
+        }
+        ctx.restore();
+
+        // ===== Bảng thông số =====
+        ctx.save();
+        ctx.font = '11px "JetBrains Mono"';
+        ctx.textAlign = 'right';
+        const infoX = W - 14;
+        let infoY = 24;
+        const lines = [
+            { t: `r = 50 m   ·   v = 18 m/s`, c: '#0F1F3D' },
+            { t: `v_max = ${vMax === Infinity ? '∞' : vMax.toFixed(1)} m/s`, c: '#0F1F3D' },
+            { t: `α = ${this.state.angle.toFixed(1)}°  ·  μ = ${mu.toFixed(2)}`, c: '#0F1F3D' },
+            { t: safe ? '→ v ≤ v_max  → an toàn' : '→ v > v_max  → văng', c: safe ? '#0B6E4F' : '#C2185B' }
+        ];
+        // Khung mờ
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fillRect(W - 218, 10, 206, 16 * lines.length + 10);
+        ctx.strokeStyle = 'rgba(15,31,61,0.25)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(W - 218, 10, 206, 16 * lines.length + 10);
+        lines.forEach(l => {
+            ctx.fillStyle = l.c;
+            ctx.fillText(l.t, infoX, infoY);
+            infoY += 16;
+        });
+        ctx.restore();
+    }
+    _drawCarTopDown(ctx, x, y, heading) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(heading);
+        // Bóng đổ
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.32)';
+        ctx.beginPath();
+        ctx.ellipse(2, 2, 16, 9, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Thân xe (roundRect fallback)
+        const grad = ctx.createLinearGradient(0, -8, 0, 8);
+        grad.addColorStop(0, '#FF5A4F');
+        grad.addColorStop(0.5, '#E8302A');
+        grad.addColorStop(1, '#A01818');
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = '#5A0808';
+        ctx.lineWidth = 1;
+        const rx = 14, ry = 7, rd = 3;
+        ctx.beginPath();
+        ctx.moveTo(-rx + rd, -ry);
+        ctx.lineTo(rx - rd, -ry);
+        ctx.quadraticCurveTo(rx, -ry, rx, -ry + rd);
+        ctx.lineTo(rx, ry - rd);
+        ctx.quadraticCurveTo(rx, ry, rx - rd, ry);
+        ctx.lineTo(-rx + rd, ry);
+        ctx.quadraticCurveTo(-rx, ry, -rx, ry - rd);
+        ctx.lineTo(-rx, -ry + rd);
+        ctx.quadraticCurveTo(-rx, -ry, -rx + rd, -ry);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        // Kính chắn gió + kính sau
+        ctx.fillStyle = '#1A2840';
+        ctx.fillRect(2, -5, 6, 10);
+        ctx.fillRect(-8, -5, 5, 10);
+        // Trần xe (vạch giữa)
+        ctx.fillStyle = '#7A0F0F';
+        ctx.fillRect(-3, -5, 6, 10);
+        // Đèn pha
+        ctx.fillStyle = '#FFFCEB';
+        ctx.fillRect(11.5, -5, 2, 2);
+        ctx.fillRect(11.5, 3, 2, 2);
+        // Đèn hậu
+        ctx.fillStyle = '#7A0808';
+        ctx.fillRect(-13.5, -5, 1.6, 2);
+        ctx.fillRect(-13.5, 3, 1.6, 2);
+        ctx.restore();
+    }
 
     _render() {
         const ctx = this.ctx;
