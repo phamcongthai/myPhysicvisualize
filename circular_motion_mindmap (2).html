@@ -1,0 +1,2514 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sơ đồ tư duy — Chuyển động tròn</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+<script>
+    MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']]
+        },
+        svg: { fontCache: 'global' }
+    };
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+<style>
+    :root {
+        /* Palette nền */
+        --bg-cream: #F4EFE2;
+        --bg-paper: #FFFFFF;
+        --bg-dark: #0F1F3D;
+        --text-primary: #0F1F3D;
+        --text-secondary: #4A5878;
+        --text-muted: #8A95B0;
+        --border-soft: #E0D8C4;
+        --shadow-sm: 0 2px 8px rgba(15, 31, 61, 0.06);
+        --shadow-md: 0 8px 24px rgba(15, 31, 61, 0.10);
+        --shadow-lg: 0 24px 60px rgba(15, 31, 61, 0.18);
+        --radius-sm: 8px;
+        --radius-md: 16px;
+        --radius-lg: 24px;
+        --font-display: 'Fraunces', Georgia, serif;
+        --font-body: 'Be Vietnam Pro', system-ui, sans-serif;
+        --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+        /* Mã màu nhất quán cho 4 nhánh */
+        --branch-1: #0B6E4F;       /* xanh lá đậm — góc & tốc độ góc */
+        --branch-1-soft: #D4F0E2;
+        --branch-2: #1E5FBF;       /* xanh dương — vận tốc tiếp tuyến */
+        --branch-2-soft: #D8E5FA;
+        --branch-3: #C2185B;       /* đỏ hồng — gia tốc & lực hướng tâm */
+        --branch-3-soft: #FBDDE9;
+        --branch-4: #B45309;       /* cam đất — sơ đồ lực thực tế */
+        --branch-4-soft: #FCE5C8;
+
+        /* Màu véc-tơ */
+        --vector-v-color: #2EB67D;
+        --vector-f-color: #E01E5A;
+        --vector-n-color: #5B21B6;
+        --vector-p-color: #2563EB;
+        --vector-fms-color: #D97706;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+        font-family: var(--font-body);
+        color: var(--text-primary);
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    /* ===== NỀN: gradient mesh + hoạ tiết quỹ đạo + lưới chấm ===== */
+    body {
+        background:
+            radial-gradient(ellipse 1200px 600px at 15% 10%, rgba(11, 110, 79, 0.10), transparent 60%),
+            radial-gradient(ellipse 1000px 500px at 85% 20%, rgba(30, 95, 191, 0.10), transparent 60%),
+            radial-gradient(ellipse 900px 600px at 25% 90%, rgba(180, 83, 9, 0.08), transparent 60%),
+            radial-gradient(ellipse 1100px 700px at 80% 80%, rgba(194, 24, 91, 0.08), transparent 60%),
+            linear-gradient(135deg, #F8F4E7 0%, #EFE7D2 100%);
+        min-height: 100vh;
+        position: relative;
+    }
+
+    body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background-image:
+            radial-gradient(circle 1px at 1px 1px, rgba(15, 31, 61, 0.08) 1px, transparent 0);
+        background-size: 32px 32px;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* SVG nền tĩnh — quỹ đạo trang trí */
+    .bg-decoration {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.5;
+    }
+
+    /* ===== HEADER ===== */
+    .page-header {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        padding: 56px 24px 8px;
+    }
+    .page-header .eyebrow {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: var(--branch-3);
+        margin-bottom: 14px;
+    }
+    .page-header h1 {
+        font-family: var(--font-display);
+        font-weight: 900;
+        font-size: clamp(2rem, 5vw, 3.4rem);
+        line-height: 1.02;
+        letter-spacing: -0.02em;
+        color: var(--bg-dark);
+    }
+    .page-header h1 em {
+        font-style: italic;
+        font-weight: 500;
+        background: linear-gradient(120deg, var(--branch-1), var(--branch-2), var(--branch-3));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    .page-header .ai-attribution {
+        margin-top: 10px;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+    .page-header .ai-attribution::before,
+    .page-header .ai-attribution::after {
+        content: '';
+        display: inline-block;
+        width: 24px;
+        height: 1px;
+        background: var(--text-muted);
+        opacity: 0.5;
+        vertical-align: middle;
+        margin: 0 10px;
+    }
+    .page-header .subtitle {
+        margin-top: 16px;
+        font-size: 1.02rem;
+        color: var(--text-secondary);
+        max-width: 680px;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.5;
+    }
+    .page-header .meta-tags {
+        margin-top: 18px;
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .meta-tag {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        padding: 5px 12px;
+        background: rgba(255,255,255,0.6);
+        border: 1px solid var(--border-soft);
+        border-radius: 100px;
+        color: var(--text-secondary);
+        backdrop-filter: blur(4px);
+    }
+
+    /* ===== THANH ĐIỀU KHIỂN LÀM TRÒN ===== */
+    .precision-bar {
+        position: relative;
+        z-index: 2;
+        max-width: 1100px;
+        margin: 18px auto 0;
+        padding: 12px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        background: rgba(255,255,255,0.7);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--border-soft);
+        border-radius: 100px;
+        box-shadow: var(--shadow-sm);
+    }
+    .precision-bar .precision-label {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        font-weight: 700;
+    }
+    .precision-bar .precision-buttons {
+        display: flex;
+        gap: 4px;
+        background: var(--bg-cream);
+        padding: 3px;
+        border-radius: 100px;
+    }
+    .precision-bar .precision-btn {
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 6px 14px;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        border-radius: 100px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .precision-bar .precision-btn:hover { color: var(--bg-dark); }
+    .precision-bar .precision-btn.is-active {
+        background: var(--bg-dark);
+        color: white;
+        box-shadow: var(--shadow-sm);
+    }
+
+    /* ===== MINDMAP ===== */
+    #mindmap-container {
+        position: relative;
+        z-index: 2;
+        width: min(1480px, 100%);
+        margin: 40px auto 96px;
+        height: 1240px;
+        padding: 32px;
+    }
+
+    #mindmap-svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .mindmap-node {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        z-index: 2;
+        cursor: pointer;
+        user-select: none;
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    }
+    .mindmap-node:hover { transform: translate(-50%, -50%) scale(1.04); }
+
+    /* ----- Node trung tâm ----- */
+    .node-central {
+        width: 240px;
+        height: 240px;
+        border-radius: 50%;
+        background:
+            radial-gradient(circle at 30% 25%, rgba(255,255,255,0.25), transparent 50%),
+            conic-gradient(from 0deg, var(--branch-1), var(--branch-2), var(--branch-3), var(--branch-4), var(--branch-1));
+        color: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 24px;
+        box-shadow: var(--shadow-lg), inset 0 -10px 30px rgba(0,0,0,0.18), inset 0 8px 20px rgba(255,255,255,0.15);
+        cursor: default;
+        position: relative;
+    }
+    .node-central::before {
+        content: '';
+        position: absolute;
+        inset: 14px;
+        border-radius: 50%;
+        background: var(--bg-dark);
+        z-index: 0;
+    }
+    .node-central > * { position: relative; z-index: 1; }
+    .node-central:hover { transform: translate(-50%, -50%); }
+
+    .node-central .icon-svg {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 4px;
+    }
+    .node-central .label {
+        font-family: var(--font-display);
+        font-size: 1.5rem;
+        font-weight: 900;
+        line-height: 1.05;
+        letter-spacing: -0.01em;
+    }
+    .node-central .sublabel {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.25em;
+        margin-top: 6px;
+        opacity: 0.7;
+        text-transform: uppercase;
+    }
+
+    /* ----- Node nhánh (Parent — cấp 1) ----- */
+    .node-parent {
+        width: 230px;
+        background: var(--bg-paper);
+        border: 2px solid;
+        border-radius: var(--radius-md);
+        padding: 20px 20px 18px;
+        box-shadow: var(--shadow-md);
+        position: absolute;
+        overflow: hidden;
+    }
+    .node-parent::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 6px;
+        background: var(--branch-color);
+    }
+    .node-parent .branch-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: var(--branch-color-soft);
+        color: var(--branch-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+    }
+    .node-parent .branch-index {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.2em;
+        color: var(--branch-color);
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .node-parent .branch-title {
+        font-family: var(--font-display);
+        font-size: 1.1rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-top: 4px;
+        color: var(--bg-dark);
+        letter-spacing: -0.01em;
+    }
+    .node-parent .branch-formula {
+        margin-top: 10px;
+        padding: 8px 10px;
+        background: var(--branch-color-soft);
+        border-radius: var(--radius-sm);
+        font-size: 0.82rem;
+        color: var(--branch-color);
+        font-weight: 600;
+    }
+    .node-parent .branch-cta {
+        margin-top: 12px;
+        font-size: 0.68rem;
+        font-family: var(--font-mono);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--branch-color);
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* ----- Node con (cấp 2) ----- */
+    .node-child {
+        width: 168px;
+        background: var(--bg-paper);
+        border: 1.5px solid;
+        border-color: var(--branch-color, var(--border-soft));
+        border-radius: 12px;
+        padding: 12px 14px;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.82rem;
+    }
+    .node-child .child-tag {
+        display: inline-block;
+        font-family: var(--font-mono);
+        font-size: 0.6rem;
+        letter-spacing: 0.15em;
+        color: var(--branch-color);
+        font-weight: 700;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+    }
+    .node-child .child-title {
+        font-weight: 700;
+        font-size: 0.88rem;
+        color: var(--bg-dark);
+        line-height: 1.25;
+    }
+    .node-child .child-detail {
+        margin-top: 4px;
+        font-size: 0.74rem;
+        color: var(--text-secondary);
+        line-height: 1.35;
+    }
+
+    /* ----- Node cháu (cấp 3) — chip nhỏ ----- */
+    .node-grandchild {
+        background: var(--branch-color-soft, #F0EBDD);
+        border: 1px solid var(--branch-color, var(--border-soft));
+        border-radius: 100px;
+        padding: 6px 12px;
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: var(--branch-color, var(--text-primary));
+        white-space: nowrap;
+        box-shadow: var(--shadow-sm);
+    }
+
+    /* ===== MODAL ===== */
+    #simulation-panel {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 31, 61, 0.65);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        z-index: 100;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    #simulation-panel.is-active { display: flex; opacity: 1; }
+
+    .modal-card {
+        width: min(1180px, 100%);
+        max-height: 94vh;
+        background: var(--bg-paper);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 1fr 1.45fr;
+        box-shadow: var(--shadow-lg);
+        transform: translateY(20px) scale(0.98);
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        border-top: 6px solid var(--branch-color, var(--branch-1));
+    }
+    #simulation-panel.is-active .modal-card { transform: translateY(0) scale(1); }
+
+    @media (max-width: 920px) {
+        .modal-card { grid-template-columns: 1fr; max-height: 96vh; overflow-y: auto; }
+    }
+
+    .modal-theory {
+        padding: 32px 28px;
+        background: linear-gradient(180deg, var(--branch-color-soft, var(--bg-cream)) 0%, var(--bg-cream) 100%);
+        overflow-y: auto;
+        max-height: 94vh;
+    }
+    .modal-theory .modal-eyebrow {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.25em;
+        color: var(--branch-color, var(--text-primary));
+        text-transform: uppercase;
+        font-weight: 700;
+    }
+    .modal-theory h2 {
+        font-family: var(--font-display);
+        font-weight: 900;
+        font-size: 1.55rem;
+        line-height: 1.15;
+        color: var(--bg-dark);
+        margin-top: 8px;
+        letter-spacing: -0.01em;
+    }
+    .theory-block { margin-top: 20px; }
+    .theory-block h3 {
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--branch-color, var(--text-secondary));
+        margin-bottom: 8px;
+    }
+    .theory-block p {
+        font-size: 0.95rem;
+        line-height: 1.65;
+        color: var(--text-primary);
+    }
+    .formula-card {
+        margin-top: 12px;
+        padding: 14px 16px;
+        background: var(--bg-paper);
+        border-left: 3px solid var(--branch-color, var(--text-primary));
+        border-radius: var(--radius-sm);
+        box-shadow: var(--shadow-sm);
+        font-size: 1rem;
+    }
+
+    /* ===== CÔNG THỨC TƯƠNG TÁC (editable) ===== */
+    .editable-formula {
+        margin-top: 14px;
+        padding: 16px;
+        background: var(--bg-paper);
+        border: 1.5px solid var(--branch-color, var(--border-soft));
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+    }
+    .editable-formula .ef-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .editable-formula .ef-title {
+        font-size: 0.74rem;
+        font-family: var(--font-mono);
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: var(--branch-color, var(--text-secondary));
+        font-weight: 700;
+    }
+    .editable-formula .ef-actions {
+        display: flex;
+        gap: 6px;
+    }
+    .editable-formula .ef-btn {
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border: 1px solid var(--border-soft);
+        background: var(--bg-cream);
+        color: var(--text-secondary);
+        border-radius: 100px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .editable-formula .ef-btn:hover {
+        background: var(--branch-color, var(--bg-dark));
+        color: white;
+        border-color: transparent;
+    }
+    .editable-formula .ef-equation {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        font-family: 'Fraunces', Georgia, serif;
+        font-size: 1.1rem;
+    }
+    .editable-formula .ef-token {
+        color: var(--bg-dark);
+        font-style: italic;
+    }
+    .editable-formula .ef-op {
+        color: var(--text-secondary);
+        font-style: normal;
+        margin: 0 2px;
+    }
+    .editable-formula .ef-input {
+        width: 64px;
+        padding: 4px 8px;
+        border: 1.5px solid var(--branch-color, var(--border-soft));
+        border-radius: 8px;
+        font-family: var(--font-mono);
+        font-size: 0.86rem;
+        font-weight: 700;
+        color: var(--branch-color, var(--bg-dark));
+        background: var(--branch-color-soft, var(--bg-cream));
+        text-align: center;
+        transition: all 0.15s ease;
+    }
+    .editable-formula .ef-input:focus {
+        outline: none;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(15, 31, 61, 0.1);
+    }
+    .editable-formula .ef-result {
+        margin-top: 12px;
+        padding: 10px 14px;
+        background: var(--bg-dark);
+        border-radius: 10px;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        font-family: var(--font-mono);
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .editable-formula .ef-result-label {
+        font-size: 0.74rem;
+        color: #8A95B0;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+    }
+    .editable-formula .ef-result-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #FFB088;
+    }
+    .editable-formula .ef-result-unit {
+        font-size: 0.78rem;
+        color: #8A95B0;
+        margin-left: 4px;
+    }
+    .editable-formula .ef-warning {
+        margin-top: 8px;
+        padding: 8px 12px;
+        background: #FFF4E0;
+        border-left: 3px solid #D97706;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        color: #92400E;
+        display: none;
+    }
+    .editable-formula .ef-warning.is-visible { display: block; }
+
+    .modal-sim {
+        padding: 28px;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-paper);
+        position: relative;
+        max-height: 94vh;
+        overflow-y: auto;
+    }
+    .modal-close {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: var(--bg-cream);
+        border: 1px solid var(--border-soft);
+        cursor: pointer;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.25s ease;
+        z-index: 5;
+    }
+    .modal-close:hover {
+        background: var(--branch-color, var(--text-primary));
+        color: white;
+        transform: rotate(90deg);
+    }
+
+    /* Phần "Thực hành" — sơ đồ 3 bước trực quan */
+    .experiment-flow {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0;
+        align-items: stretch;
+    }
+    .experiment-step {
+        position: relative;
+        padding: 12px 12px 12px 16px;
+        background: var(--bg-paper);
+        border-top: 3px solid var(--branch-color);
+        border-right: 1px solid var(--border-soft);
+    }
+    .experiment-step:last-child { border-right: none; }
+    .experiment-step .step-num {
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.18em;
+        color: var(--branch-color);
+        font-weight: 700;
+    }
+    .experiment-step .step-title {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--bg-dark);
+        margin-top: 2px;
+        line-height: 1.2;
+    }
+    .experiment-step .step-desc {
+        margin-top: 6px;
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+        line-height: 1.4;
+    }
+
+    .canvas-wrapper {
+        background:
+            radial-gradient(circle 1px at 1px 1px, rgba(15, 31, 61, 0.05) 1px, transparent 0),
+            linear-gradient(135deg, #FCFAF4, #F0EAD8);
+        background-size: 16px 16px, 100% 100%;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-soft);
+        padding: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 320px;
+    }
+    canvas { display: block; max-width: 100%; height: auto; }
+
+    .controls-grid {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+    .control-item {
+        background: var(--branch-color-soft, var(--bg-cream));
+        border-radius: var(--radius-sm);
+        padding: 12px 14px;
+        border: 1px solid rgba(0,0,0,0.04);
+    }
+    .control-item label {
+        display: block;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: 6px;
+    }
+    .control-item input[type="range"] {
+        width: 100%;
+        accent-color: var(--branch-color, var(--text-primary));
+    }
+    .control-item input[type="number"] {
+        width: 100%;
+        padding: 6px 10px;
+        border: 1px solid var(--border-soft);
+        border-radius: var(--radius-sm);
+        font-family: var(--font-mono);
+        font-size: 0.9rem;
+        background: var(--bg-paper);
+    }
+    .control-item .value-display {
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--branch-color, var(--text-primary));
+        margin-top: 4px;
+    }
+
+    .readout-table {
+        margin-top: 14px;
+        background: var(--bg-dark);
+        color: #E0E7FF;
+        border-radius: var(--radius-sm);
+        padding: 14px 16px;
+        font-family: var(--font-mono);
+        font-size: 0.84rem;
+    }
+    .readout-table .readout-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+        border-bottom: 1px dashed rgba(255,255,255,0.08);
+    }
+    .readout-table .readout-row:last-child { border-bottom: none; }
+    .readout-table .readout-label { color: #8A95B0; }
+    .readout-table .readout-value { color: #FFB088; font-weight: 700; }
+
+    .legend {
+        margin-top: 12px;
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        font-size: 0.78rem;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-swatch { width: 16px; height: 4px; border-radius: 2px; }
+
+    /* ===== LEGEND BAND DƯỚI MINDMAP ===== */
+    .branch-legend {
+        position: relative;
+        z-index: 2;
+        max-width: 1100px;
+        margin: 0 auto 64px;
+        padding: 0 24px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+    @media (max-width: 880px) {
+        .branch-legend { grid-template-columns: repeat(2, 1fr); }
+    }
+    .legend-card {
+        background: rgba(255,255,255,0.7);
+        backdrop-filter: blur(8px);
+        border-radius: var(--radius-md);
+        padding: 14px;
+        border: 1px solid var(--border-soft);
+        border-top: 3px solid var(--branch-color);
+    }
+    .legend-card .legend-title {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--branch-color);
+    }
+    .legend-card .legend-desc {
+        margin-top: 4px;
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+        line-height: 1.4;
+    }
+
+    .footer-note {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        padding: 24px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+    }
+
+    @keyframes nodeFadeIn {
+        from { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+        to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+    .mindmap-node { animation: nodeFadeIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
+</style>
+</head>
+<body>
+
+<!-- SVG nền trang trí -->
+<svg class="bg-decoration" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <pattern id="orbit-pattern" x="0" y="0" width="600" height="600" patternUnits="userSpaceOnUse">
+            <circle cx="300" cy="300" r="120" fill="none" stroke="rgba(15,31,61,0.05)" stroke-width="1" stroke-dasharray="3 6"/>
+            <circle cx="300" cy="300" r="220" fill="none" stroke="rgba(15,31,61,0.04)" stroke-width="1" stroke-dasharray="2 8"/>
+            <circle cx="300" cy="300" r="3" fill="rgba(15,31,61,0.1)"/>
+        </pattern>
+    </defs>
+    <rect width="1920" height="1080" fill="url(#orbit-pattern)"/>
+</svg>
+
+<header class="page-header">
+    <div class="eyebrow">Vật lí 10 — Chương Động lực học</div>
+    <h1>Chuyển động <em>tròn</em></h1>
+    <div class="ai-attribution">Generated by Claude Opus 4.7 (Anthropic)</div>
+    <p class="subtitle">Sơ đồ tư duy phân cấp ba lớp — từ định nghĩa nền tảng đến bài toán động lực học thực tế.<br>Click vào mỗi nhánh để mở mô phỏng tương tác.</p>
+    <div class="meta-tags">
+        <span class="meta-tag">4 nhánh chính</span>
+        <span class="meta-tag">12 chủ đề con</span>
+        <span class="meta-tag">4 mô phỏng tương tác</span>
+        <span class="meta-tag">MathJax / Canvas 2D</span>
+    </div>
+</header>
+
+<div class="precision-bar" id="precision-bar">
+    <span class="precision-label">Làm tròn kết quả</span>
+    <div class="precision-buttons" id="precision-buttons">
+        <button class="precision-btn" data-precision="1">1 chữ số</button>
+        <button class="precision-btn is-active" data-precision="2">2 chữ số</button>
+        <button class="precision-btn" data-precision="3">3 chữ số</button>
+        <button class="precision-btn" data-precision="4">4 chữ số</button>
+        <button class="precision-btn" data-precision="6">6 chữ số</button>
+    </div>
+</div>
+
+<main id="mindmap-container">
+    <svg id="mindmap-svg"></svg>
+</main>
+
+<section class="branch-legend" id="branch-legend"></section>
+
+<div id="simulation-panel" role="dialog" aria-modal="true">
+    <div class="modal-card" id="modal-card">
+        <aside class="modal-theory" id="modal-theory"></aside>
+        <section class="modal-sim" id="modal-sim">
+            <button class="modal-close" id="modal-close-btn" aria-label="Đóng">&times;</button>
+            <div id="modal-sim-content"></div>
+        </section>
+    </div>
+</div>
+
+<footer class="footer-note">Sơ đồ tư duy — Vật lí 10 / Chuyển động tròn</footer>
+
+<script>
+'use strict';
+
+/* ============================================================
+   MODULE 1: ICON LIBRARY — bộ icon SVG nội tuyến (không emoji)
+   ============================================================ */
+const IconLibrary = {
+    angle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 L20 20 M4 20 L20 8"/><path d="M14 20 A 10 10 0 0 0 8 13" stroke-dasharray="2 2"/></svg>',
+    velocity: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12 L18 12"/><path d="M14 8 L18 12 L14 16"/><circle cx="20" cy="12" r="2" fill="currentColor"/></svg>',
+    force: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 4 L12 9 M4 12 L9 12 M12 20 L12 15 M20 12 L15 12"/></svg>',
+    car: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14 L4 10 L20 10 L21 14 L21 17 L3 17 Z"/><circle cx="7" cy="17" r="2" fill="white"/><circle cx="17" cy="17" r="2" fill="white"/></svg>',
+    arrow: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8 L13 8 M9 4 L13 8 L9 12"/></svg>',
+    central: '<svg viewBox="0 0 48 48" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="24" cy="24" r="14" stroke-dasharray="3 3"/><circle cx="24" cy="24" r="3" fill="white"/><circle cx="38" cy="24" r="3" fill="white"/><path d="M24 24 L38 24" stroke-width="1.5"/></svg>'
+};
+
+/* ============================================================
+   MODULE 1B: PRECISION CONTROLLER — quản lý số chữ số làm tròn
+   ============================================================ */
+const PrecisionController = {
+    precision: 2,
+    listeners: [],
+
+    setPrecision(n) {
+        this.precision = parseInt(n, 10);
+        this.listeners.forEach(cb => {
+            try { cb(this.precision); } catch (e) { console.error(e); }
+        });
+    },
+    onChange(cb) { this.listeners.push(cb); },
+
+    init() {
+        const buttons = document.querySelectorAll('#precision-buttons .precision-btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => b.classList.remove('is-active'));
+                btn.classList.add('is-active');
+                this.setPrecision(btn.dataset.precision);
+            });
+        });
+    }
+};
+
+/* ============================================================
+   MODULE 1C: NUMERIC FORMATTER — định dạng số theo precision
+   ============================================================ */
+const NumericFormatter = {
+    /**
+     * Định dạng giá trị số theo precision hiện tại của PrecisionController.
+     * Hỗ trợ cả số thường và số quá lớn/nhỏ (chuyển sang khoa học khi cần).
+     */
+    format(value, options = {}) {
+        if (value === null || value === undefined || Number.isNaN(value)) return '—';
+        if (!Number.isFinite(value)) return '∞';
+
+        const p = options.precision !== undefined ? options.precision : PrecisionController.precision;
+        const abs = Math.abs(value);
+
+        // Số rất nhỏ hoặc rất lớn — dùng dạng khoa học
+        if (abs !== 0 && (abs < Math.pow(10, -p - 2) || abs >= 1e7)) {
+            return value.toExponential(p);
+        }
+        return value.toFixed(p);
+    },
+    /**
+     * Trả về số đã làm tròn dưới dạng Number (không phải chuỗi).
+     */
+    round(value) {
+        if (!Number.isFinite(value)) return value;
+        const p = PrecisionController.precision;
+        const f = Math.pow(10, p);
+        return Math.round(value * f) / f;
+    }
+};
+
+/* ============================================================
+   MODULE 1D: EDITABLE FORMULA — render công thức có ô nhập biến
+   ============================================================
+   Cấu trúc cấu hình:
+   {
+     id: 'unique-id',
+     title: 'Tên công thức hiển thị',
+     // Mảng template gồm các phần tử dạng:
+     //   { type: 'text',  value: 'F = ' }       — văn bản tĩnh
+     //   { type: 'op',    value: ' · ' }        — toán tử
+     //   { type: 'var',   key: 'm', default: 1, min: 0, max: 100, step: 0.1, unit: 'kg' }
+     template: [...],
+     compute: (vars) => number,                 — hàm tính toán
+     resultLabel: 'F_ht',
+     resultUnit: 'N'
+   }
+============================================================ */
+class EditableFormula {
+    constructor(config, mountEl) {
+        this.config = config;
+        this.mountEl = mountEl;
+        this.values = {};
+        // Khởi tạo giá trị mặc định
+        config.template.forEach(t => {
+            if (t.type === 'var') this.values[t.key] = t.default;
+        });
+        this.precisionUnsubscribe = null;
+    }
+
+    render() {
+        const c = this.config;
+        const equationHTML = c.template.map((t, idx) => {
+            if (t.type === 'text') return `<span class="ef-token">${t.value}</span>`;
+            if (t.type === 'op')   return `<span class="ef-op">${t.value}</span>`;
+            if (t.type === 'var') {
+                return `<input class="ef-input" type="number"
+                              data-key="${t.key}"
+                              value="${t.default}"
+                              ${t.min !== undefined ? `min="${t.min}"` : ''}
+                              ${t.max !== undefined ? `max="${t.max}"` : ''}
+                              step="${t.step || 0.1}"
+                              title="${t.label || t.key}${t.unit ? ' (' + t.unit + ')' : ''}">`;
+            }
+            return '';
+        }).join('');
+
+        this.mountEl.innerHTML = `
+            <div class="editable-formula" data-formula-id="${c.id}">
+                <div class="ef-header">
+                    <div class="ef-title">${c.title}</div>
+                    <div class="ef-actions">
+                        <button class="ef-btn" data-action="reset">Đặt lại</button>
+                        <button class="ef-btn" data-action="copy">Sao chép</button>
+                    </div>
+                </div>
+                <div class="ef-equation">${equationHTML}</div>
+                <div class="ef-result">
+                    <span class="ef-result-label">${c.resultLabel || 'Kết quả'}</span>
+                    <span>
+                        <span class="ef-result-value" data-role="result">—</span>
+                        <span class="ef-result-unit">${c.resultUnit || ''}</span>
+                    </span>
+                </div>
+                <div class="ef-warning" data-role="warning"></div>
+            </div>
+        `;
+
+        this._bind();
+        this._recompute();
+
+        // Đăng ký lắng nghe thay đổi precision toàn cục
+        const onPrecision = () => this._recompute();
+        PrecisionController.onChange(onPrecision);
+        this.precisionUnsubscribe = onPrecision;
+    }
+
+    _bind() {
+        const root = this.mountEl.querySelector('.editable-formula');
+        const inputs = root.querySelectorAll('.ef-input');
+        inputs.forEach(input => {
+            input.addEventListener('input', (e) => {
+                const key = e.target.dataset.key;
+                const raw = parseFloat(e.target.value);
+                this.values[key] = Number.isFinite(raw) ? raw : 0;
+                this._recompute();
+            });
+        });
+
+        root.querySelector('[data-action="reset"]').addEventListener('click', () => this._reset());
+        root.querySelector('[data-action="copy"]').addEventListener('click', () => this._copy());
+    }
+
+    _recompute() {
+        const root = this.mountEl.querySelector('.editable-formula');
+        if (!root) return;
+        const resultEl = root.querySelector('[data-role="result"]');
+        const warningEl = root.querySelector('[data-role="warning"]');
+
+        let result, error = null;
+        try {
+            result = this.config.compute(this.values);
+        } catch (err) {
+            error = err.message || 'Lỗi tính toán';
+        }
+
+        if (error) {
+            resultEl.textContent = '—';
+            warningEl.textContent = error;
+            warningEl.classList.add('is-visible');
+        } else if (!Number.isFinite(result)) {
+            resultEl.textContent = '—';
+            warningEl.textContent = 'Giá trị không xác định (kiểm tra mẫu số ≠ 0)';
+            warningEl.classList.add('is-visible');
+        } else {
+            resultEl.textContent = NumericFormatter.format(result);
+            warningEl.classList.remove('is-visible');
+        }
+    }
+
+    _reset() {
+        this.config.template.forEach(t => {
+            if (t.type === 'var') this.values[t.key] = t.default;
+        });
+        const inputs = this.mountEl.querySelectorAll('.ef-input');
+        inputs.forEach(input => {
+            const key = input.dataset.key;
+            input.value = this.values[key];
+        });
+        this._recompute();
+    }
+
+    _copy() {
+        const root = this.mountEl.querySelector('.editable-formula');
+        const result = root.querySelector('[data-role="result"]').textContent;
+        const parts = this.config.template.map(t => {
+            if (t.type === 'text' || t.type === 'op') return t.value.trim();
+            if (t.type === 'var') return `${t.key}=${this.values[t.key]}`;
+            return '';
+        }).filter(Boolean).join(' ');
+        const text = `${parts} → ${this.config.resultLabel || ''} = ${result} ${this.config.resultUnit || ''}`.trim();
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = root.querySelector('[data-action="copy"]');
+                const old = btn.textContent;
+                btn.textContent = 'Đã sao chép';
+                setTimeout(() => { btn.textContent = old; }, 1200);
+            }).catch(() => {});
+        }
+    }
+}
+
+/* ============================================================
+   MODULE 1E: EDITABLE FORMULA CONFIGS — định nghĩa công thức cho từng nhánh
+   ============================================================ */
+const EDITABLE_FORMULAS = {
+    'branch-1': [
+        {
+            id: 'theta-formula',
+            title: 'Tính độ dịch chuyển góc θ',
+            template: [
+                { type: 'text', value: 'θ = ' },
+                { type: 'var', key: 's', default: 1.5, min: 0, max: 100, step: 0.1, unit: 'm', label: 'Cung s' },
+                { type: 'op',   value: ' / ' },
+                { type: 'var', key: 'r', default: 1.0, min: 0.01, max: 100, step: 0.01, unit: 'm', label: 'Bán kính r' }
+            ],
+            compute: (v) => v.s / v.r,
+            resultLabel: 'θ',
+            resultUnit: 'rad'
+        },
+        {
+            id: 'omega-formula',
+            title: 'Tính tốc độ góc ω',
+            template: [
+                { type: 'text', value: 'ω = ' },
+                { type: 'var', key: 'theta', default: 1.5, min: 0, max: 1000, step: 0.01, unit: 'rad', label: 'Góc θ' },
+                { type: 'op',   value: ' / ' },
+                { type: 'var', key: 't', default: 2, min: 0.01, max: 1000, step: 0.01, unit: 's', label: 'Thời gian t' }
+            ],
+            compute: (v) => v.theta / v.t,
+            resultLabel: 'ω',
+            resultUnit: 'rad/s'
+        }
+    ],
+    'branch-2': [
+        {
+            id: 'v-formula',
+            title: 'Tính tốc độ tuyến tính v',
+            template: [
+                { type: 'text', value: 'v = ' },
+                { type: 'var', key: 'omega', default: 1.5, min: 0, max: 100, step: 0.05, unit: 'rad/s', label: 'ω' },
+                { type: 'op',   value: ' · ' },
+                { type: 'var', key: 'r', default: 1.0, min: 0.01, max: 100, step: 0.01, unit: 'm', label: 'r' }
+            ],
+            compute: (v) => v.omega * v.r,
+            resultLabel: 'v',
+            resultUnit: 'm/s'
+        },
+        {
+            id: 'period-formula',
+            title: 'Tính chu kì T',
+            template: [
+                { type: 'text', value: 'T = 2π · ' },
+                { type: 'var', key: 'r', default: 1.0, min: 0.01, max: 100, step: 0.01, unit: 'm', label: 'r' },
+                { type: 'op',   value: ' / ' },
+                { type: 'var', key: 'v', default: 1.5, min: 0.01, max: 100, step: 0.01, unit: 'm/s', label: 'v' }
+            ],
+            compute: (v) => (2 * Math.PI * v.r) / v.v,
+            resultLabel: 'T',
+            resultUnit: 's'
+        }
+    ],
+    'branch-3': [
+        {
+            id: 'aht-formula',
+            title: 'Tính gia tốc hướng tâm a_ht',
+            template: [
+                { type: 'text', value: 'a_ht = ' },
+                { type: 'var', key: 'v', default: 2, min: 0, max: 100, step: 0.05, unit: 'm/s', label: 'v' },
+                { type: 'op',   value: '² / ' },
+                { type: 'var', key: 'r', default: 1.1, min: 0.01, max: 100, step: 0.01, unit: 'm', label: 'r' }
+            ],
+            compute: (v) => (v.v * v.v) / v.r,
+            resultLabel: 'a_ht',
+            resultUnit: 'm/s²'
+        },
+        {
+            id: 'fht-formula',
+            title: 'Tính lực hướng tâm F_ht',
+            template: [
+                { type: 'text', value: 'F_ht = ' },
+                { type: 'var', key: 'm', default: 1.0, min: 0.01, max: 1000, step: 0.1, unit: 'kg', label: 'm' },
+                { type: 'op',   value: ' · ' },
+                { type: 'var', key: 'v', default: 2, min: 0, max: 100, step: 0.05, unit: 'm/s', label: 'v' },
+                { type: 'op',   value: '² / ' },
+                { type: 'var', key: 'r', default: 1.1, min: 0.01, max: 100, step: 0.01, unit: 'm', label: 'r' }
+            ],
+            compute: (v) => (v.m * v.v * v.v) / v.r,
+            resultLabel: 'F_ht',
+            resultUnit: 'N'
+        }
+    ],
+    'branch-4': [
+        {
+            id: 'banked-formula',
+            title: 'Phương trình động lực ô tô vào cua',
+            template: [
+                { type: 'text', value: 'F_ht = ' },
+                { type: 'var', key: 'N', default: 100, min: 0, max: 100000, step: 1, unit: 'N', label: 'Phản lực N' },
+                { type: 'op',   value: ' · sin(' },
+                { type: 'var', key: 'alpha_deg', default: 15, min: 0, max: 89, step: 0.5, unit: 'độ', label: 'Góc α' },
+                { type: 'op',   value: '°) + ' },
+                { type: 'var', key: 'Fms', default: 50, min: 0, max: 100000, step: 1, unit: 'N', label: 'F_ms' },
+                { type: 'op',   value: ' · cos(α°)' }
+            ],
+            compute: (v) => {
+                const a = v.alpha_deg * Math.PI / 180;
+                return v.N * Math.sin(a) + v.Fms * Math.cos(a);
+            },
+            resultLabel: 'F_ht (hợp lực hướng tâm)',
+            resultUnit: 'N'
+        },
+        {
+            id: 'critical-velocity',
+            title: 'Tốc độ tới hạn (giả định ma sát = 0)',
+            template: [
+                { type: 'text', value: 'v_max = √(' },
+                { type: 'var', key: 'r', default: 50, min: 0.1, max: 10000, step: 0.5, unit: 'm', label: 'Bán kính r' },
+                { type: 'op',   value: ' · g · tan(' },
+                { type: 'var', key: 'alpha_deg', default: 15, min: 0, max: 89, step: 0.5, unit: 'độ', label: 'α' },
+                { type: 'op',   value: '°))' }
+            ],
+            compute: (v) => {
+                const a = v.alpha_deg * Math.PI / 180;
+                const inside = v.r * 9.81 * Math.tan(a);
+                if (inside < 0) throw new Error('Biểu thức dưới căn âm');
+                return Math.sqrt(inside);
+            },
+            resultLabel: 'v_max',
+            resultUnit: 'm/s'
+        }
+    ]
+};
+
+/* ============================================================
+   MODULE 2: MINDMAP STRUCTURE — phân cấp 3 lớp
+   ============================================================ */
+const MINDMAP_STRUCTURE = [
+    {
+        id: 'branch-1',
+        index: '01',
+        title: 'Đại lượng góc',
+        subtitle: 'Cách mô tả chuyển động bằng góc',
+        shortFormula: 'θ = s/r ; ω = θ/t',
+        colorVar: '--branch-1',
+        colorSoftVar: '--branch-1-soft',
+        icon: IconLibrary.angle,
+        children: [
+            {
+                tag: '1.1',
+                title: 'Độ dịch chuyển góc',
+                detail: 'θ (rad) = cung s / bán kính r',
+                grandchildren: ['1 vòng = 2π rad', 'rad ↔ độ', 'Quy ước dấu']
+            },
+            {
+                tag: '1.2',
+                title: 'Tốc độ góc',
+                detail: 'ω = θ/t — đặc trưng cho chuyển động quay',
+                grandchildren: ['Đơn vị rad/s', 'Liên hệ tần số', 'Liên hệ chu kỳ']
+            },
+            {
+                tag: '1.3',
+                title: 'Chu kì & tần số',
+                detail: 'T = 2π/ω ; f = 1/T (Hz)',
+                grandchildren: ['T : thời gian 1 vòng', 'f : số vòng/giây']
+            }
+        ],
+        theory: {
+            heading: 'Mô tả chuyển động bằng đại lượng góc',
+            blocks: [
+                { title: 'Độ dịch chuyển góc', text: 'Khi vật chuyển động trên cung tròn có độ dài \\(s\\), bán kính \\(r\\), độ dịch chuyển góc tương ứng được xác định bằng tỉ số giữa cung và bán kính.', formula: '$$\\theta = \\frac{s}{r}\\quad (\\text{rad})$$' },
+                { title: 'Tốc độ góc', text: 'Tốc độ góc đặc trưng cho mức độ thay đổi góc quét theo thời gian. Đơn vị: radian/giây (rad/s).', formula: '$$\\omega = \\frac{\\theta}{t} = \\frac{2\\pi}{T} = 2\\pi f$$' },
+                { title: 'Chu kì & tần số', text: 'Chu kì \\(T\\) là thời gian vật quay được một vòng. Tần số \\(f\\) là số vòng quay trong một đơn vị thời gian.', formula: '$$T = \\frac{2\\pi}{\\omega},\\quad f = \\frac{1}{T}$$' }
+            ]
+        },
+        experiment: {
+            title: 'Thực hành mô phỏng',
+            steps: [
+                { num: 'Bước 1', title: 'Chọn quỹ đạo', desc: 'Điều chỉnh bán kính r trên thanh trượt' },
+                { num: 'Bước 2', title: 'Quét cung s', desc: 'Kéo độ dài cung — cung quạt vẽ lại theo θ' },
+                { num: 'Bước 3', title: 'Đọc kết quả', desc: 'θ và ω được tính tự động dựa trên thời gian t' }
+            ]
+        }
+    },
+    {
+        id: 'branch-2',
+        index: '02',
+        title: 'Vận tốc tiếp tuyến',
+        subtitle: 'Liên hệ giữa chuyển động góc và chuyển động tịnh tiến',
+        shortFormula: 'v = ω·r = 2π·r/T',
+        colorVar: '--branch-2',
+        colorSoftVar: '--branch-2-soft',
+        icon: IconLibrary.velocity,
+        children: [
+            {
+                tag: '2.1',
+                title: 'Độ lớn của tốc độ',
+                detail: 'v = ω·r — không đổi trong CĐ tròn đều',
+                grandchildren: ['Tỉ lệ với r', 'Tỉ lệ với ω']
+            },
+            {
+                tag: '2.2',
+                title: 'Hướng véc-tơ vận tốc',
+                detail: 'Tiếp tuyến quỹ đạo, ⊥ bán kính',
+                grandchildren: ['Đổi hướng liên tục', 'Cùng chiều chuyển động']
+            },
+            {
+                tag: '2.3',
+                title: 'Phương trình tham số',
+                detail: 'x = r·cos(ωt) ; y = r·sin(ωt)',
+                grandchildren: ['Quỹ đạo: đường tròn', 'Hàm điều hoà']
+            }
+        ],
+        theory: {
+            heading: 'Vận tốc trong chuyển động tròn đều',
+            blocks: [
+                { title: 'Độ lớn của tốc độ', text: 'Trong chuyển động tròn đều, tốc độ tuyến tính có độ lớn không đổi và liên hệ với tốc độ góc qua bán kính.', formula: '$$v = \\omega r = \\frac{2\\pi r}{T}$$' },
+                { title: 'Đặc điểm véc-tơ vận tốc', text: 'Véc-tơ \\(\\vec{v}\\) có phương tiếp tuyến với quỹ đạo, chiều theo chiều chuyển động. Độ lớn không đổi nhưng hướng liên tục thay đổi — đây chính là nguyên nhân vật có gia tốc.', formula: '$$\\vec{v} \\perp \\vec{r}\\ \\text{(tại mỗi điểm)}$$' },
+                { title: 'Phương trình toạ độ', text: 'Vị trí của vật chuyển động tròn đều mô tả bằng phương trình tham số.', formula: '$$x = r\\cos(\\omega t),\\quad y = r\\sin(\\omega t)$$' }
+            ]
+        },
+        experiment: {
+            title: 'Thực hành mô phỏng',
+            steps: [
+                { num: 'Bước 1', title: 'Khởi động', desc: 'Vật quay với ω ban đầu = 1.5 rad/s' },
+                { num: 'Bước 2', title: 'Đổi tốc độ', desc: 'Tăng ω — véc-tơ v dài ra tỉ lệ thuận' },
+                { num: 'Bước 3', title: 'Quan sát', desc: 'v luôn vuông góc với bán kính tại mọi điểm' }
+            ]
+        }
+    },
+    {
+        id: 'branch-3',
+        index: '03',
+        title: 'Lực hướng tâm',
+        subtitle: 'Nguyên nhân giữ vật trên quỹ đạo cong',
+        shortFormula: 'a = v²/r ; F = m·v²/r',
+        colorVar: '--branch-3',
+        colorSoftVar: '--branch-3-soft',
+        icon: IconLibrary.force,
+        children: [
+            {
+                tag: '3.1',
+                title: 'Gia tốc hướng tâm',
+                detail: 'a_ht = v²/r = ω²·r — luôn hướng vào tâm',
+                grandchildren: ['Phương: bán kính', 'Chiều: hướng vào O', 'Bậc 2 theo v']
+            },
+            {
+                tag: '3.2',
+                title: 'Định luật II Newton',
+                detail: 'F = m·a → F_ht = m·v²/r',
+                grandchildren: ['F ∝ v²', 'F ∝ m', 'F ∝ 1/r']
+            },
+            {
+                tag: '3.3',
+                title: 'Vai trò của F_ht',
+                detail: 'Đổi hướng vận tốc, không đổi độ lớn',
+                grandchildren: ['Không sinh công', 'Vuông góc với v']
+            }
+        ],
+        theory: {
+            heading: 'Nguyên nhân giữ vật trên quỹ đạo tròn',
+            blocks: [
+                { title: 'Gia tốc hướng tâm', text: 'Vì \\(\\vec{v}\\) liên tục đổi hướng nên vật có gia tốc. Gia tốc này luôn hướng vào tâm quỹ đạo.', formula: '$$a_{ht} = \\frac{v^2}{r} = r\\omega^2$$' },
+                { title: 'Lực hướng tâm', text: 'Theo Định luật II Newton, lực gây ra gia tốc hướng tâm gọi là lực hướng tâm. Lưu ý: \\(F_{ht}\\) tỉ lệ thuận với BÌNH PHƯƠNG vận tốc.', formula: '$$F_{ht} = m\\cdot a_{ht} = \\frac{mv^2}{r} = m r \\omega^2$$' },
+                { title: 'Tính chất quan trọng', text: 'Lực hướng tâm luôn vuông góc với véc-tơ vận tốc nên không sinh công, chỉ có vai trò làm đổi hướng chuyển động.', formula: '$$\\vec{F}_{ht} \\perp \\vec{v} \\Rightarrow A = 0$$' }
+            ]
+        },
+        experiment: {
+            title: 'Thực hành mô phỏng',
+            steps: [
+                { num: 'Bước 1', title: 'Chỉnh m, v, r', desc: 'Nhập 3 thông số trên thanh trượt' },
+                { num: 'Bước 2', title: 'So sánh véc-tơ', desc: 'v tăng tuyến tính · F tăng theo v² (bậc 2)' },
+                { num: 'Bước 3', title: 'Đọc số liệu', desc: 'F_ht hiển thị real-time + log console' }
+            ]
+        }
+    },
+    {
+        id: 'branch-4',
+        index: '04',
+        title: 'Bài toán thực tế',
+        subtitle: 'Phân tích lực ô tô vào khúc cua nghiêng',
+        shortFormula: 'N·sinα + F_ms·cosα = mv²/r',
+        colorVar: '--branch-4',
+        colorSoftVar: '--branch-4-soft',
+        icon: IconLibrary.car,
+        children: [
+            {
+                tag: '4.1',
+                title: 'Bản chất F_ht',
+                detail: 'Là hợp lực, không phải lực mới',
+                grandchildren: ['Trọng lực', 'Phản lực', 'Ma sát', 'Lực căng']
+            },
+            {
+                tag: '4.2',
+                title: 'Mặt đường nghiêng α',
+                detail: 'Phân tích N và F_ms thành hai phương',
+                grandchildren: ['Phương ngang → F_ht', 'Phương đứng → cân bằng P']
+            },
+            {
+                tag: '4.3',
+                title: 'Phương trình động lực',
+                detail: 'N·sinα + F_ms·cosα = mv²/r',
+                grandchildren: ['Tốc độ giới hạn', 'Vai trò ma sát']
+            }
+        ],
+        theory: {
+            heading: 'Phân tích lực: Ô tô vào khúc cua nghiêng',
+            blocks: [
+                { title: 'Bản chất lực hướng tâm', text: 'Lực hướng tâm KHÔNG phải lực mới. Nó là hợp lực hoặc thành phần của các lực có sẵn (trọng lực, phản lực, ma sát, lực căng dây, lực hấp dẫn...) có tác dụng giữ vật trên quỹ đạo tròn.', formula: '' },
+                { title: 'Phân tích trên mặt đường nghiêng', text: 'Khi ô tô vào khúc cua trên mặt đường nghiêng góc \\(\\alpha\\), thành phần ngang của phản lực và lực ma sát cùng đóng vai trò lực hướng tâm.', formula: '$$N\\sin\\alpha + F_{ms}\\cos\\alpha = \\frac{mv^2}{r}$$' },
+                { title: 'Phương trình cân bằng đứng', text: 'Theo phương thẳng đứng, ô tô không có gia tốc nên các thành phần lực phải triệt tiêu nhau.', formula: '$$N\\cos\\alpha = mg + F_{ms}\\sin\\alpha$$' }
+            ]
+        },
+        experiment: {
+            title: 'Thực hành mô phỏng',
+            steps: [
+                { num: 'Bước 1', title: 'Chọn α', desc: 'Kéo thanh trượt: 0° đến 45°' },
+                { num: 'Bước 2', title: 'Quan sát véc-tơ', desc: 'P, N, F_ms tự xoay theo lượng giác' },
+                { num: 'Bước 3', title: 'Hợp lực', desc: 'Nét đứt biểu diễn hình chiếu → F_ht' }
+            ]
+        }
+    }
+];
+
+/* ============================================================
+   MODULE 3: VECTOR RENDERER
+   ============================================================ */
+class VectorRenderer {
+    static drawArrow(ctx, startX, startY, endX, endY, color, label = '', options = {}) {
+        const lineWidth = options.lineWidth || 3;
+        const headLength = options.headLength || 12;
+        const headAngle = options.headAngle || Math.PI / 7;
+        const dx = endX - startX;
+        const dy = endY - startY;
+        const angle = Math.atan2(dy, dx);
+        const magnitude = Math.sqrt(dx * dx + dy * dy);
+
+        if (magnitude < 1) return;
+
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = 'round';
+
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(endX - headLength * Math.cos(angle - headAngle), endY - headLength * Math.sin(angle - headAngle));
+        ctx.lineTo(endX - headLength * Math.cos(angle + headAngle), endY - headLength * Math.sin(angle + headAngle));
+        ctx.closePath();
+        ctx.fill();
+
+        if (label) {
+            ctx.font = 'bold 13px "JetBrains Mono", monospace';
+            ctx.fillStyle = color;
+            const labelOffset = 14;
+            const labelX = endX + labelOffset * Math.cos(angle);
+            const labelY = endY + labelOffset * Math.sin(angle);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, labelX, labelY);
+        }
+        ctx.restore();
+    }
+
+    static drawDashedLine(ctx, x1, y1, x2, y2, color = '#888') {
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+
+/* ============================================================
+   MODULE 4: PHYSICS CALCULATOR
+   ============================================================ */
+class PhysicsCalculator {
+    static angularDisplacement(arcLength, radius) {
+        if (radius <= 0) return 0;
+        return arcLength / radius;
+    }
+    static angularVelocity(theta, time) {
+        if (time <= 0) return 0;
+        return theta / time;
+    }
+    static linearVelocity(angularVelocity, radius) {
+        return angularVelocity * radius;
+    }
+    static centripetalAcceleration(velocity, radius) {
+        if (radius <= 0) return 0;
+        return (velocity * velocity) / radius;
+    }
+    static centripetalForce(mass, velocity, radius) {
+        return mass * PhysicsCalculator.centripetalAcceleration(velocity, radius);
+    }
+    static parametricPosition(radius, angularVelocity, time) {
+        return {
+            x: radius * Math.cos(angularVelocity * time),
+            y: radius * Math.sin(angularVelocity * time)
+        };
+    }
+    static tangentAngle(angularVelocity, time) {
+        return angularVelocity * time + Math.PI / 2;
+    }
+}
+
+/* ============================================================
+   MODULE 5: SIMULATION ENGINE
+   ============================================================ */
+class SimulationEngine {
+    constructor() {
+        this.animationFrameId = null;
+        this.lastTimestamp = 0;
+        this.elapsedTime = 0;
+        this.isRunning = false;
+        this.updateCallback = null;
+        this.renderCallback = null;
+    }
+    setUpdateCallback(callback) { this.updateCallback = callback; }
+    setRenderCallback(callback) { this.renderCallback = callback; }
+    start() {
+        if (this.isRunning) return;
+        this.isRunning = true;
+        this.lastTimestamp = performance.now();
+        this._loop(this.lastTimestamp);
+    }
+    stop() {
+        this.isRunning = false;
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+    }
+    reset() { this.elapsedTime = 0; }
+    _loop(timestamp) {
+        if (!this.isRunning) return;
+        const deltaTime = (timestamp - this.lastTimestamp) / 1000;
+        this.lastTimestamp = timestamp;
+        this.elapsedTime += deltaTime;
+        if (this.updateCallback) this.updateCallback(deltaTime, this.elapsedTime);
+        if (this.renderCallback) this.renderCallback();
+        this.animationFrameId = requestAnimationFrame((t) => this._loop(t));
+    }
+}
+
+/* ============================================================
+   MODULE 6: SIMULATION 1 — Độ dịch chuyển góc & tốc độ góc
+   ============================================================ */
+class AngularDisplacementSim {
+    constructor(container, branchColor) {
+        this.container = container;
+        this.branchColor = branchColor;
+        this.state = { radius: 100, arcLength: 150, time: 2 };
+        this.canvas = null;
+        this.ctx = null;
+    }
+    mount() {
+        this.container.innerHTML = `
+            <div class="canvas-wrapper">
+                <canvas id="sim1-canvas" width="480" height="340"></canvas>
+            </div>
+            <div class="controls-grid">
+                <div class="control-item">
+                    <label>Bán kính \\(r\\) (px)</label>
+                    <input type="range" id="sim1-radius" min="40" max="150" value="100" step="1">
+                    <div class="value-display" id="sim1-radius-val">100</div>
+                </div>
+                <div class="control-item">
+                    <label>Độ dài cung \\(s\\) (px)</label>
+                    <input type="range" id="sim1-arc" min="0" max="600" value="150" step="1">
+                    <div class="value-display" id="sim1-arc-val">150</div>
+                </div>
+                <div class="control-item" style="grid-column: 1 / -1;">
+                    <label>Thời gian \\(t\\) (s)</label>
+                    <input type="number" id="sim1-time" min="0.1" max="60" step="0.1" value="2">
+                </div>
+            </div>
+            <div class="readout-table" id="sim1-readout"></div>
+        `;
+        this.canvas = document.getElementById('sim1-canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this._bindControls();
+        this._render();
+        // Đăng ký re-render khi đổi precision
+        this._precisionListener = () => this._render();
+        PrecisionController.onChange(this._precisionListener);
+    }
+    _bindControls() {
+        document.getElementById('sim1-radius').addEventListener('input', (e) => {
+            this.state.radius = parseFloat(e.target.value);
+            document.getElementById('sim1-radius-val').textContent = this.state.radius.toFixed(0);
+            this._render();
+        });
+        document.getElementById('sim1-arc').addEventListener('input', (e) => {
+            this.state.arcLength = parseFloat(e.target.value);
+            document.getElementById('sim1-arc-val').textContent = this.state.arcLength.toFixed(0);
+            this._render();
+        });
+        document.getElementById('sim1-time').addEventListener('input', (e) => {
+            this.state.time = Math.max(0.1, parseFloat(e.target.value) || 0.1);
+            this._render();
+        });
+    }
+    _render() {
+        const ctx = this.ctx;
+        const W = this.canvas.width, H = this.canvas.height;
+        const cx = W / 2, cy = H / 2;
+        const r = this.state.radius;
+
+        ctx.clearRect(0, 0, W, H);
+
+        // Lưới hệ quy chiếu cực
+        ctx.save();
+        ctx.strokeStyle = '#E0D8C4';
+        ctx.lineWidth = 1;
+        for (let rr = 30; rr <= 160; rr += 30) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.beginPath();
+        ctx.moveTo(cx - 170, cy); ctx.lineTo(cx + 170, cy);
+        ctx.moveTo(cx, cy - 160); ctx.lineTo(cx, cy + 160);
+        ctx.stroke();
+        ctx.restore();
+
+        const theta = PhysicsCalculator.angularDisplacement(this.state.arcLength, r);
+        const angularVelocity = PhysicsCalculator.angularVelocity(theta, this.state.time);
+
+        // Cung quạt
+        ctx.save();
+        ctx.fillStyle = 'rgba(11, 110, 79, 0.18)';
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, r, 0, -theta, true);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // Quỹ đạo
+        ctx.save();
+        ctx.strokeStyle = '#0F1F3D';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        // Cung s đậm
+        ctx.save();
+        ctx.strokeStyle = this.branchColor;
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, -theta, true);
+        ctx.stroke();
+        ctx.restore();
+
+        VectorRenderer.drawArrow(ctx, cx, cy, cx + r, cy, '#0F1F3D', 'r', { lineWidth: 2 });
+        const endX = cx + r * Math.cos(-theta);
+        const endY = cy + r * Math.sin(-theta);
+        VectorRenderer.drawArrow(ctx, cx, cy, endX, endY, '#0F1F3D', '', { lineWidth: 2 });
+
+        ctx.save();
+        ctx.fillStyle = this.branchColor;
+        ctx.font = 'bold 16px "JetBrains Mono"';
+        const midAngle = -theta / 2;
+        const labelR = r * 0.35;
+        ctx.fillText('θ', cx + labelR * Math.cos(midAngle) - 6, cy + labelR * Math.sin(midAngle) + 6);
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle = '#0F1F3D';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = 'bold 13px "Be Vietnam Pro"';
+        ctx.fillText('O', cx - 14, cy + 14);
+        ctx.restore();
+
+        this._updateReadout(theta, angularVelocity);
+    }
+    _updateReadout(theta, omega) {
+        const thetaDeg = (theta * 180 / Math.PI);
+        const revolutions = theta / (2 * Math.PI);
+        document.getElementById('sim1-readout').innerHTML = `
+            <div class="readout-row"><span class="readout-label">θ (rad)</span><span class="readout-value">${NumericFormatter.format(theta)}</span></div>
+            <div class="readout-row"><span class="readout-label">θ (độ)</span><span class="readout-value">${NumericFormatter.format(thetaDeg)}°</span></div>
+            <div class="readout-row"><span class="readout-label">Số vòng quay</span><span class="readout-value">${NumericFormatter.format(revolutions)}</span></div>
+            <div class="readout-row"><span class="readout-label">ω = θ/t (rad/s)</span><span class="readout-value">${NumericFormatter.format(omega)}</span></div>
+        `;
+    }
+    unmount() {}
+}
+
+/* ============================================================
+   MODULE 7: SIMULATION 2 — Vận tốc tiếp tuyến
+   ============================================================ */
+class TangentialVelocitySim {
+    constructor(container, branchColor) {
+        this.container = container;
+        this.branchColor = branchColor;
+        this.state = { angularVelocity: 1.5, radius: 110 };
+        this.engine = new SimulationEngine();
+        this.canvas = null;
+        this.ctx = null;
+    }
+    mount() {
+        this.container.innerHTML = `
+            <div class="canvas-wrapper">
+                <canvas id="sim2-canvas" width="480" height="340"></canvas>
+            </div>
+            <div class="controls-grid">
+                <div class="control-item">
+                    <label>Tốc độ góc \\(\\omega\\) (rad/s)</label>
+                    <input type="range" id="sim2-omega" min="0.2" max="4" step="0.05" value="1.5">
+                    <div class="value-display" id="sim2-omega-val">1.50</div>
+                </div>
+                <div class="control-item">
+                    <label>Bán kính \\(r\\) (px)</label>
+                    <input type="range" id="sim2-radius" min="60" max="140" step="1" value="110">
+                    <div class="value-display" id="sim2-radius-val">110</div>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><span class="legend-swatch" style="background: #2EB67D;"></span> Véc-tơ \\(\\vec{v}\\) tiếp tuyến</div>
+                <div class="legend-item"><span class="legend-swatch" style="background: #1E5FBF;"></span> Bán kính \\(\\vec{r}\\)</div>
+            </div>
+            <div class="readout-table" id="sim2-readout"></div>
+        `;
+        this.canvas = document.getElementById('sim2-canvas');
+        this.ctx = this.canvas.getContext('2d');
+
+        document.getElementById('sim2-omega').addEventListener('input', (e) => {
+            this.state.angularVelocity = parseFloat(e.target.value);
+            document.getElementById('sim2-omega-val').textContent = this.state.angularVelocity.toFixed(2);
+        });
+        document.getElementById('sim2-radius').addEventListener('input', (e) => {
+            this.state.radius = parseFloat(e.target.value);
+            document.getElementById('sim2-radius-val').textContent = this.state.radius.toFixed(0);
+        });
+
+        this.engine.setRenderCallback(() => this._render());
+        this.engine.start();
+    }
+    unmount() { this.engine.stop(); }
+    _render() {
+        const ctx = this.ctx;
+        const W = this.canvas.width, H = this.canvas.height;
+        const cx = W / 2, cy = H / 2;
+        const r = this.state.radius;
+        const omega = this.state.angularVelocity;
+        const t = this.engine.elapsedTime;
+
+        ctx.clearRect(0, 0, W, H);
+
+        ctx.save();
+        ctx.strokeStyle = '#1E5FBF';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 6]);
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        const pos = PhysicsCalculator.parametricPosition(r, omega, t);
+        const px = cx + pos.x;
+        const py = cy - pos.y;
+
+        VectorRenderer.drawArrow(ctx, cx, cy, px, py, '#1E5FBF', '', { lineWidth: 2 });
+
+        const v = PhysicsCalculator.linearVelocity(omega, r);
+        const vScale = 30;
+        const tangentAngle = omega * t + Math.PI / 2;
+        const vMagnitude = v * vScale / r * 0.7;
+        const vEndX = px + vMagnitude * Math.cos(tangentAngle);
+        const vEndY = py - vMagnitude * Math.sin(tangentAngle);
+        VectorRenderer.drawArrow(ctx, px, py, vEndX, vEndY, '#2EB67D', 'v', { lineWidth: 3.5 });
+
+        ctx.save();
+        ctx.fillStyle = this.branchColor;
+        ctx.shadowColor = 'rgba(30, 95, 191, 0.35)';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(px, py, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle = '#0F1F3D';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = 'bold 13px "Be Vietnam Pro"';
+        ctx.fillText('O', cx - 14, cy + 14);
+        ctx.restore();
+
+        const period = (2 * Math.PI) / omega;
+        document.getElementById('sim2-readout').innerHTML = `
+            <div class="readout-row"><span class="readout-label">v = ωr (px/s)</span><span class="readout-value">${NumericFormatter.format(v)}</span></div>
+            <div class="readout-row"><span class="readout-label">Chu kì T (s)</span><span class="readout-value">${NumericFormatter.format(period)}</span></div>
+            <div class="readout-row"><span class="readout-label">Tần số f (Hz)</span><span class="readout-value">${NumericFormatter.format(1/period)}</span></div>
+            <div class="readout-row"><span class="readout-label">Góc tiếp tuyến (rad)</span><span class="readout-value">${NumericFormatter.format(tangentAngle % (2*Math.PI))}</span></div>
+        `;
+    }
+}
+
+/* ============================================================
+   MODULE 8: SIMULATION 3 — Lực hướng tâm
+   ============================================================ */
+class CentripetalForceSim {
+    constructor(container, branchColor) {
+        this.container = container;
+        this.branchColor = branchColor;
+        this.state = { mass: 1, velocity: 2, radius: 1.1 };
+        this.engine = new SimulationEngine();
+        this.canvas = null;
+        this.ctx = null;
+        this.lastLogTime = 0;
+    }
+    mount() {
+        this.container.innerHTML = `
+            <div class="canvas-wrapper">
+                <canvas id="sim3-canvas" width="480" height="340"></canvas>
+            </div>
+            <div class="controls-grid">
+                <div class="control-item">
+                    <label>Khối lượng \\(m\\) (kg)</label>
+                    <input type="range" id="sim3-mass" min="0.5" max="5" step="0.1" value="1">
+                    <div class="value-display" id="sim3-mass-val">1.0</div>
+                </div>
+                <div class="control-item">
+                    <label>Tốc độ \\(v\\) (m/s)</label>
+                    <input type="range" id="sim3-v" min="0.5" max="6" step="0.1" value="2">
+                    <div class="value-display" id="sim3-v-val">2.0</div>
+                </div>
+                <div class="control-item" style="grid-column: 1 / -1;">
+                    <label>Bán kính \\(r\\) (m)</label>
+                    <input type="range" id="sim3-r" min="0.5" max="3" step="0.1" value="1.1">
+                    <div class="value-display" id="sim3-r-val">1.1</div>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><span class="legend-swatch" style="background: #2EB67D;"></span> \\(\\vec{v}\\) bậc 1 theo v</div>
+                <div class="legend-item"><span class="legend-swatch" style="background: #E01E5A;"></span> \\(\\vec{F}_{ht}\\) bậc 2 theo v</div>
+            </div>
+            <div class="readout-table" id="sim3-readout"></div>
+        `;
+        this.canvas = document.getElementById('sim3-canvas');
+        this.ctx = this.canvas.getContext('2d');
+
+        document.getElementById('sim3-mass').addEventListener('input', (e) => {
+            this.state.mass = parseFloat(e.target.value);
+            document.getElementById('sim3-mass-val').textContent = this.state.mass.toFixed(1);
+        });
+        document.getElementById('sim3-v').addEventListener('input', (e) => {
+            this.state.velocity = parseFloat(e.target.value);
+            document.getElementById('sim3-v-val').textContent = this.state.velocity.toFixed(1);
+        });
+        document.getElementById('sim3-r').addEventListener('input', (e) => {
+            this.state.radius = parseFloat(e.target.value);
+            document.getElementById('sim3-r-val').textContent = this.state.radius.toFixed(1);
+        });
+
+        this.engine.setRenderCallback(() => this._render());
+        this.engine.start();
+    }
+    unmount() { this.engine.stop(); }
+    _drawVectors(ctx, px, py, cx, cy, velocityMagnitude, forceMagnitude, tangentAngle) {
+        const vScale = 14;
+        const vLen = velocityMagnitude * vScale;
+        const vEndX = px + vLen * Math.cos(tangentAngle);
+        const vEndY = py - vLen * Math.sin(tangentAngle);
+        VectorRenderer.drawArrow(ctx, px, py, vEndX, vEndY, '#2EB67D', 'v', { lineWidth: 3.5 });
+
+        const fScale = 0.6;
+        const fLen = Math.min(forceMagnitude * fScale, 120);
+        const dirX = cx - px;
+        const dirY = cy - py;
+        const dist = Math.sqrt(dirX * dirX + dirY * dirY);
+        if (dist > 0) {
+            const fEndX = px + (dirX / dist) * fLen;
+            const fEndY = py + (dirY / dist) * fLen;
+            VectorRenderer.drawArrow(ctx, px, py, fEndX, fEndY, '#E01E5A', 'F_ht', { lineWidth: 3.5 });
+        }
+    }
+    _render() {
+        const ctx = this.ctx;
+        const W = this.canvas.width, H = this.canvas.height;
+        const cx = W / 2, cy = H / 2;
+        const r = this.state.radius;
+        const v = this.state.velocity;
+        const m = this.state.mass;
+        const t = this.engine.elapsedTime;
+
+        const omega = v / Math.max(r, 0.01);
+        const displayRadius = 50 + r * 30;
+
+        ctx.clearRect(0, 0, W, H);
+
+        ctx.save();
+        ctx.strokeStyle = '#C2185B';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 6]);
+        ctx.beginPath();
+        ctx.arc(cx, cy, displayRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        const px = cx + displayRadius * Math.cos(omega * t);
+        const py = cy - displayRadius * Math.sin(omega * t);
+
+        const aHt = PhysicsCalculator.centripetalAcceleration(v, r);
+        const fHt = PhysicsCalculator.centripetalForce(m, v, r);
+
+        const tangentAngle = omega * t + Math.PI / 2;
+        this._drawVectors(ctx, px, py, cx, cy, v, fHt, tangentAngle);
+
+        ctx.save();
+        const radiusPx = 8 + Math.sqrt(m) * 4;
+        ctx.fillStyle = this.branchColor;
+        ctx.shadowColor = 'rgba(194, 24, 91, 0.35)';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(px, py, radiusPx, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle = '#0F1F3D';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = 'bold 13px "Be Vietnam Pro"';
+        ctx.fillText('O', cx - 14, cy + 14);
+        ctx.restore();
+
+        document.getElementById('sim3-readout').innerHTML = `
+            <div class="readout-row"><span class="readout-label">a_ht = v²/r (m/s²)</span><span class="readout-value">${NumericFormatter.format(aHt)}</span></div>
+            <div class="readout-row"><span class="readout-label">F_ht = mv²/r (N)</span><span class="readout-value">${NumericFormatter.format(fHt)}</span></div>
+            <div class="readout-row"><span class="readout-label">v² (m²/s²)</span><span class="readout-value">${NumericFormatter.format(v*v)}</span></div>
+            <div class="readout-row"><span class="readout-label">Chu kì T (s)</span><span class="readout-value">${NumericFormatter.format(2*Math.PI*r/v)}</span></div>
+        `;
+
+        if (t - this.lastLogTime > 1.0) {
+            console.log(`[F_ht] t=${NumericFormatter.format(t)}s | m=${m}kg, v=${v}m/s, r=${r}m → F_ht = ${NumericFormatter.format(fHt)} N`);
+            this.lastLogTime = t;
+        }
+    }
+}
+
+/* ============================================================
+   MODULE 9: SIMULATION 4 — Sơ đồ lực ô tô vào cua nghiêng
+   ============================================================ */
+class BankedTurnSim {
+    constructor(container, branchColor) {
+        this.container = container;
+        this.branchColor = branchColor;
+        this.state = { angle: 15 };
+        this.canvas = null;
+        this.ctx = null;
+    }
+    mount() {
+        this.container.innerHTML = `
+            <div class="canvas-wrapper">
+                <canvas id="sim4-canvas" width="480" height="340"></canvas>
+            </div>
+            <div class="controls-grid">
+                <div class="control-item" style="grid-column: 1 / -1;">
+                    <label>Góc nghiêng mặt đường \\(\\alpha\\) (độ)</label>
+                    <input type="range" id="sim4-angle" min="0" max="45" step="1" value="15">
+                    <div class="value-display" id="sim4-angle-val">15°</div>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><span class="legend-swatch" style="background: #2563EB;"></span> \\(\\vec{P}\\)</div>
+                <div class="legend-item"><span class="legend-swatch" style="background: #5B21B6;"></span> \\(\\vec{N}\\)</div>
+                <div class="legend-item"><span class="legend-swatch" style="background: #D97706;"></span> \\(\\vec{F}_{ms}\\)</div>
+                <div class="legend-item"><span class="legend-swatch" style="background: #E01E5A;"></span> \\(\\vec{F}_{ht}\\)</div>
+            </div>
+            <div class="readout-table" id="sim4-readout"></div>
+        `;
+        this.canvas = document.getElementById('sim4-canvas');
+        this.ctx = this.canvas.getContext('2d');
+
+        document.getElementById('sim4-angle').addEventListener('input', (e) => {
+            this.state.angle = parseFloat(e.target.value);
+            document.getElementById('sim4-angle-val').textContent = this.state.angle + '°';
+            this._render();
+        });
+        this._render();
+        // Re-render khi đổi precision
+        this._precisionListener = () => this._render();
+        PrecisionController.onChange(this._precisionListener);
+    }
+    unmount() {}
+    _render() {
+        const ctx = this.ctx;
+        const W = this.canvas.width, H = this.canvas.height;
+        ctx.clearRect(0, 0, W, H);
+
+        const alpha = this.state.angle * Math.PI / 180;
+        const cosA = Math.cos(alpha);
+        const sinA = Math.sin(alpha);
+
+        const cx = W / 2;
+        const cy = H / 2 + 30;
+
+        const roadHalf = 160;
+
+        ctx.save();
+        ctx.strokeStyle = '#C5BFB0';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 5]);
+        ctx.beginPath();
+        ctx.moveTo(40, cy); ctx.lineTo(W - 40, cy);
+        ctx.stroke();
+        ctx.restore();
+
+        const roadX1 = cx - roadHalf * cosA;
+        const roadY1 = cy + roadHalf * sinA;
+        const roadX2 = cx + roadHalf * cosA;
+        const roadY2 = cy - roadHalf * sinA;
+
+        ctx.save();
+        ctx.fillStyle = '#3A4A6E';
+        ctx.beginPath();
+        ctx.moveTo(roadX1, roadY1);
+        ctx.lineTo(roadX2, roadY2);
+        ctx.lineTo(roadX2, roadY2 + 16);
+        ctx.lineTo(roadX1, roadY1 + 16);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = '#0F1F3D';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(roadX1, roadY1); ctx.lineTo(roadX2, roadY2);
+        ctx.stroke();
+
+        ctx.strokeStyle = this.branchColor;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 8]);
+        ctx.beginPath();
+        ctx.moveTo(roadX1, roadY1); ctx.lineTo(roadX2, roadY2);
+        ctx.stroke();
+        ctx.restore();
+
+        if (this.state.angle > 1) {
+            ctx.save();
+            ctx.strokeStyle = this.branchColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(roadX1, roadY1, 36, -alpha, 0);
+            ctx.stroke();
+            ctx.fillStyle = this.branchColor;
+            ctx.font = 'bold 14px "JetBrains Mono"';
+            ctx.fillText('α', roadX1 + 42, roadY1 - 6);
+            ctx.restore();
+        }
+
+        const carWidth = 70;
+        const carHeight = 28;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(-alpha);
+        ctx.fillStyle = this.branchColor;
+        ctx.fillRect(-carWidth/2, -carHeight, carWidth, carHeight - 4);
+        ctx.fillStyle = '#0F1F3D';
+        ctx.fillRect(-carWidth/2 + 14, -carHeight - 13, carWidth - 28, 13);
+        ctx.beginPath(); ctx.arc(-carWidth/2 + 14, -4, 6, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(carWidth/2 - 14, -4, 6, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+
+        const centerX = cx + (-carHeight/2) * sinA;
+        const centerY = cy - carHeight/2 * cosA;
+
+        const vecScale = 65;
+
+        // Trọng lực
+        VectorRenderer.drawArrow(ctx, centerX, centerY, centerX, centerY + vecScale, '#2563EB', 'P', { lineWidth: 3 });
+
+        // Phản lực N
+        const nDirX = -sinA, nDirY = -cosA;
+        const N = cosA;
+        const nEndX = centerX + N * vecScale * nDirX;
+        const nEndY = centerY + N * vecScale * nDirY;
+        VectorRenderer.drawArrow(ctx, centerX, centerY, nEndX, nEndY, '#5B21B6', 'N', { lineWidth: 3 });
+
+        // Lực ma sát
+        const fmsDirX = -cosA, fmsDirY = sinA;
+        const Fms = 0.6;
+        const fmsEndX = centerX + Fms * vecScale * fmsDirX;
+        const fmsEndY = centerY + Fms * vecScale * fmsDirY;
+        VectorRenderer.drawArrow(ctx, centerX, centerY, fmsEndX, fmsEndY, '#D97706', 'F_ms', { lineWidth: 3 });
+
+        VectorRenderer.drawDashedLine(ctx, nEndX, nEndY, nEndX, centerY, '#888');
+        VectorRenderer.drawDashedLine(ctx, fmsEndX, fmsEndY, fmsEndX, centerY, '#888');
+
+        const fhtMagnitude = (N * sinA + Fms * cosA) * vecScale;
+        const fhtEndX = centerX - fhtMagnitude;
+        VectorRenderer.drawArrow(ctx, centerX, centerY, fhtEndX, centerY, '#E01E5A', 'F_ht', { lineWidth: 3.5 });
+
+        const Nsin = sinA;
+        const Fmscos = 0.6 * cosA;
+        const total = Nsin + Fmscos;
+        document.getElementById('sim4-readout').innerHTML = `
+            <div class="readout-row"><span class="readout-label">α (rad)</span><span class="readout-value">${NumericFormatter.format(alpha)}</span></div>
+            <div class="readout-row"><span class="readout-label">sin α</span><span class="readout-value">${NumericFormatter.format(sinA)}</span></div>
+            <div class="readout-row"><span class="readout-label">cos α</span><span class="readout-value">${NumericFormatter.format(cosA)}</span></div>
+            <div class="readout-row"><span class="readout-label">N · sin α</span><span class="readout-value">${NumericFormatter.format(Nsin)}</span></div>
+            <div class="readout-row"><span class="readout-label">F_ms · cos α</span><span class="readout-value">${NumericFormatter.format(Fmscos)}</span></div>
+            <div class="readout-row"><span class="readout-label">Tổng (~F_ht/mv²·r)</span><span class="readout-value">${NumericFormatter.format(total)}</span></div>
+        `;
+    }
+}
+
+/* ============================================================
+   MODULE 10: MINDMAP LAYOUT — bố trí 3 cấp tỏa từ tâm
+   ============================================================ */
+class MindmapLayout {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.svg = document.getElementById('mindmap-svg');
+        this.connections = []; // {from: {x,y}, to: {x,y}, color, level}
+    }
+
+    /**
+     * Bố trí phân cấp 3 lớp:
+     *  - Cấp 0 (trung tâm) tại giữa
+     *  - Cấp 1 (parent) tỏa ra 4 góc
+     *  - Cấp 2 (child) — 3 node nằm cùng phía với parent
+     *  - Cấp 3 (grandchild) — chip nhỏ quanh mỗi child
+     */
+    layout() {
+        const rect = this.container.getBoundingClientRect();
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+
+        // Tăng khoảng cách parent ra xa tâm
+        const parentRadiusX = Math.min(rect.width * 0.34, 410);
+        const parentRadiusY = Math.min(rect.height * 0.20, 230);
+
+        const baseAngles = [
+            -Math.PI * 3 / 4,   // trên-trái
+            -Math.PI / 4,       // trên-phải
+            Math.PI / 4,        // dưới-phải
+            Math.PI * 3 / 4     // dưới-trái
+        ];
+
+        const positions = {
+            central: { x: cx, y: cy },
+            parents: [],
+            children: [],
+            grandchildren: []
+        };
+
+        MINDMAP_STRUCTURE.forEach((branch, i) => {
+            const angle = baseAngles[i];
+            const px = cx + parentRadiusX * Math.cos(angle);
+            const py = cy + parentRadiusY * Math.sin(angle);
+            positions.parents.push({ x: px, y: py, angle, branch });
+
+            // Bố trí 3 child theo cung quanh parent — hướng ra ngoài
+            const childCount = branch.children.length;
+            const childRadius = 280;
+
+            // Hướng từ tâm tới parent
+            const outwardAngle = angle;
+            // Mở rộng spread để các child không đè lên nhau hoặc lên parent
+            const spreadHalf = 0.85;
+
+            branch.children.forEach((child, j) => {
+                const t = childCount === 1 ? 0 : (j / (childCount - 1)) * 2 - 1; // -1..1
+                const childAngle = outwardAngle + t * spreadHalf;
+                const cxPos = px + childRadius * Math.cos(childAngle);
+                const cyPos = py + childRadius * Math.sin(childAngle);
+                positions.children.push({
+                    x: cxPos,
+                    y: cyPos,
+                    parent: { x: px, y: py },
+                    branchIdx: i,
+                    branch,
+                    child,
+                    childAngle
+                });
+            });
+        });
+
+        return positions;
+    }
+
+    render() {
+        this.container.querySelectorAll('.mindmap-node').forEach(n => n.remove());
+        this.svg.innerHTML = '';
+
+        const positions = this.layout();
+        const central = positions.central;
+
+        // Defs gradient
+        const ns = 'http://www.w3.org/2000/svg';
+        const defs = document.createElementNS(ns, 'defs');
+        const colors = ['--branch-1', '--branch-2', '--branch-3', '--branch-4'];
+        colors.forEach((c, i) => {
+            const grad = document.createElementNS(ns, 'linearGradient');
+            grad.setAttribute('id', `grad-${i}`);
+            grad.setAttribute('x1', '0%'); grad.setAttribute('x2', '100%');
+            const s1 = document.createElementNS(ns, 'stop');
+            s1.setAttribute('offset', '0%');
+            s1.setAttribute('stop-color', getComputedStyle(document.documentElement).getPropertyValue(c).trim());
+            s1.setAttribute('stop-opacity', '0.9');
+            const s2 = document.createElementNS(ns, 'stop');
+            s2.setAttribute('offset', '100%');
+            s2.setAttribute('stop-color', getComputedStyle(document.documentElement).getPropertyValue(c).trim());
+            s2.setAttribute('stop-opacity', '0.5');
+            grad.appendChild(s1); grad.appendChild(s2);
+            defs.appendChild(grad);
+        });
+        this.svg.appendChild(defs);
+
+        // Vẽ đường cong từ central đến parents (đậm)
+        positions.parents.forEach((p, i) => {
+            this._drawCurve(central.x, central.y, p.x, p.y, `url(#grad-${i})`, 3.2, 0.75);
+        });
+        // Vẽ đường mảnh từ parent đến children
+        positions.children.forEach((c) => {
+            const color = getComputedStyle(document.documentElement)
+                .getPropertyValue(c.branch.colorVar).trim();
+            this._drawCurve(c.parent.x, c.parent.y, c.x, c.y, color, 1.6, 0.55);
+        });
+
+        // Render Node trung tâm
+        const centralEl = document.createElement('div');
+        centralEl.className = 'mindmap-node node-central';
+        centralEl.style.left = central.x + 'px';
+        centralEl.style.top = central.y + 'px';
+        centralEl.style.animationDelay = '0s';
+        centralEl.innerHTML = `
+            <div class="icon-svg">${IconLibrary.central}</div>
+            <div class="label">Chuyển động<br>Tròn</div>
+            <div class="sublabel">Vật lí 10</div>
+        `;
+        this.container.appendChild(centralEl);
+
+        // Render Parent nodes
+        positions.parents.forEach((p, i) => {
+            const branch = p.branch;
+            const el = document.createElement('div');
+            el.className = 'mindmap-node node-parent';
+            el.style.left = p.x + 'px';
+            el.style.top = p.y + 'px';
+            el.style.setProperty('--branch-color', `var(${branch.colorVar})`);
+            el.style.setProperty('--branch-color-soft', `var(${branch.colorSoftVar})`);
+            el.style.borderColor = `var(${branch.colorVar})`;
+            el.style.animationDelay = (0.15 + i * 0.08) + 's';
+            el.innerHTML = `
+                <div class="branch-icon">${branch.icon}</div>
+                <div class="branch-index">Nhánh ${branch.index}</div>
+                <div class="branch-title">${branch.title}</div>
+                <div class="branch-formula">${branch.shortFormula}</div>
+                <div class="branch-cta">Mở mô phỏng ${IconLibrary.arrow}</div>
+            `;
+            el.addEventListener('click', () => modalController.open(branch.id));
+            this.container.appendChild(el);
+        });
+
+        // Render Child nodes
+        positions.children.forEach((c, i) => {
+            const branch = c.branch;
+            const child = c.child;
+            const el = document.createElement('div');
+            el.className = 'mindmap-node node-child';
+            el.style.left = c.x + 'px';
+            el.style.top = c.y + 'px';
+            el.style.setProperty('--branch-color', `var(${branch.colorVar})`);
+            el.style.setProperty('--branch-color-soft', `var(${branch.colorSoftVar})`);
+            el.style.animationDelay = (0.45 + i * 0.04) + 's';
+            el.innerHTML = `
+                <div class="child-tag">${child.tag}</div>
+                <div class="child-title">${child.title}</div>
+                <div class="child-detail">${child.detail}</div>
+            `;
+            // Click vào child cũng mở modal nhánh đó
+            el.addEventListener('click', () => modalController.open(branch.id));
+            this.container.appendChild(el);
+        });
+
+        if (window.MathJax && window.MathJax.typesetPromise) {
+            window.MathJax.typesetPromise([this.container]).catch(() => {});
+        }
+    }
+
+    _drawCurve(x1, y1, x2, y2, color, width, opacity) {
+        const ns = 'http://www.w3.org/2000/svg';
+        const dx = x2 - x1, dy = y2 - y1;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const offset = Math.min(40, dist * 0.18);
+        const perpX = -dy / dist * offset;
+        const perpY = dx / dist * offset;
+        const mx = (x1 + x2) / 2 + perpX;
+        const my = (y1 + y2) / 2 + perpY;
+
+        const path = document.createElementNS(ns, 'path');
+        path.setAttribute('d', `M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`);
+        path.setAttribute('stroke', color);
+        path.setAttribute('stroke-width', width);
+        path.setAttribute('stroke-opacity', opacity);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke-linecap', 'round');
+        this.svg.appendChild(path);
+    }
+}
+
+/* ============================================================
+   MODULE 11: MODAL CONTROLLER
+   ============================================================ */
+class ModalController {
+    constructor() {
+        this.panel = document.getElementById('simulation-panel');
+        this.card = document.getElementById('modal-card');
+        this.theoryEl = document.getElementById('modal-theory');
+        this.simContentEl = document.getElementById('modal-sim-content');
+        this.closeBtn = document.getElementById('modal-close-btn');
+        this.currentSim = null;
+
+        this.closeBtn.addEventListener('click', () => this.close());
+        this.panel.addEventListener('click', (e) => {
+            if (e.target === this.panel) this.close();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.panel.classList.contains('is-active')) this.close();
+        });
+    }
+
+    open(branchId) {
+        const branch = MINDMAP_STRUCTURE.find(b => b.id === branchId);
+        if (!branch) return;
+
+        const branchColor = getComputedStyle(document.documentElement)
+            .getPropertyValue(branch.colorVar).trim();
+        const branchSoft = getComputedStyle(document.documentElement)
+            .getPropertyValue(branch.colorSoftVar).trim();
+
+        // Áp màu nhánh cho modal
+        this.card.style.setProperty('--branch-color', branchColor);
+        this.card.style.setProperty('--branch-color-soft', branchSoft);
+
+        const blocksHTML = branch.theory.blocks.map(block => `
+            <div class="theory-block">
+                <h3>${block.title}</h3>
+                <p>${block.text}</p>
+                ${block.formula ? `<div class="formula-card">${block.formula}</div>` : ''}
+            </div>
+        `).join('');
+
+        // Sub-children chips trong theory
+        const childrenChips = branch.children.map(ch => `
+            <div style="margin-top:10px; padding:10px 12px; background:rgba(255,255,255,0.6); border-radius:10px; border-left:3px solid ${branchColor};">
+                <div style="font-family:var(--font-mono); font-size:0.66rem; letter-spacing:0.15em; color:${branchColor}; font-weight:700;">${ch.tag}</div>
+                <div style="font-weight:700; font-size:0.92rem; margin-top:2px;">${ch.title}</div>
+                <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:3px;">${ch.detail}</div>
+                <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:5px;">
+                    ${ch.grandchildren.map(g => `<span style="font-size:0.7rem; padding:3px 8px; background:${branchSoft}; color:${branchColor}; border-radius:100px; font-weight:600;">${g}</span>`).join('')}
+                </div>
+            </div>
+        `).join('');
+
+        this.theoryEl.innerHTML = `
+            <div class="modal-eyebrow">Nhánh ${branch.index}</div>
+            <h2>${branch.theory.heading}</h2>
+            ${blocksHTML}
+            <div class="theory-block">
+                <h3>Tổng quan các chủ đề con</h3>
+                ${childrenChips}
+            </div>
+        `;
+
+        if (this.currentSim && this.currentSim.unmount) this.currentSim.unmount();
+
+        // Xây content sim: experiment flow + máy tính công thức + canvas + controls
+        const expFlow = `
+            <div class="theory-block" style="margin-top:0;">
+                <h3 style="color:${branchColor};">${branch.experiment.title}</h3>
+                <div class="experiment-flow">
+                    ${branch.experiment.steps.map(s => `
+                        <div class="experiment-step" style="--branch-color:${branchColor};">
+                            <div class="step-num">${s.num}</div>
+                            <div class="step-title">${s.title}</div>
+                            <div class="step-desc">${s.desc}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        const formulaLabSection = `
+            <div class="theory-block">
+                <h3 style="color:${branchColor};">Máy tính công thức (chỉnh sửa biến)</h3>
+                <div id="formula-lab-mount"></div>
+            </div>
+        `;
+
+        this.simContentEl.innerHTML = expFlow + formulaLabSection + '<div id="sim-mount-point"></div>';
+        const mountPoint = document.getElementById('sim-mount-point');
+
+        // Render các editable formulas của nhánh hiện tại
+        const formulaMount = document.getElementById('formula-lab-mount');
+        const formulas = EDITABLE_FORMULAS[branchId] || [];
+        formulaMount.innerHTML = '';
+        this.activeFormulas = [];
+        formulas.forEach(cfg => {
+            const wrap = document.createElement('div');
+            formulaMount.appendChild(wrap);
+            const ef = new EditableFormula(cfg, wrap);
+            ef.render();
+            this.activeFormulas.push(ef);
+        });
+
+        switch (branchId) {
+            case 'branch-1':
+                this.currentSim = new AngularDisplacementSim(mountPoint, branchColor); break;
+            case 'branch-2':
+                this.currentSim = new TangentialVelocitySim(mountPoint, branchColor); break;
+            case 'branch-3':
+                this.currentSim = new CentripetalForceSim(mountPoint, branchColor); break;
+            case 'branch-4':
+                this.currentSim = new BankedTurnSim(mountPoint, branchColor); break;
+        }
+        this.currentSim.mount();
+
+        this.panel.classList.add('is-active');
+        document.body.style.overflow = 'hidden';
+
+        if (window.MathJax && window.MathJax.typesetPromise) {
+            window.MathJax.typesetPromise([this.theoryEl, this.simContentEl]).catch(() => {});
+        }
+    }
+
+    close() {
+        this.panel.classList.remove('is-active');
+        document.body.style.overflow = '';
+        if (this.currentSim && this.currentSim.unmount) this.currentSim.unmount();
+        this.currentSim = null;
+    }
+}
+
+/* ============================================================
+   MODULE 12: LEGEND BAND — chú giải dưới mindmap
+   ============================================================ */
+class BranchLegendRenderer {
+    static render() {
+        const container = document.getElementById('branch-legend');
+        container.innerHTML = MINDMAP_STRUCTURE.map(branch => {
+            const color = getComputedStyle(document.documentElement)
+                .getPropertyValue(branch.colorVar).trim();
+            return `
+                <div class="legend-card" style="--branch-color:${color};">
+                    <div class="legend-title">Nhánh ${branch.index} · ${branch.title}</div>
+                    <div class="legend-desc">${branch.subtitle}</div>
+                </div>
+            `;
+        }).join('');
+    }
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+const layout = new MindmapLayout('mindmap-container');
+const modalController = new ModalController();
+
+window.addEventListener('load', () => {
+    PrecisionController.init();
+    layout.render();
+    BranchLegendRenderer.render();
+});
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => layout.render(), 150);
+});
+</script>
+</body>
+</html>
